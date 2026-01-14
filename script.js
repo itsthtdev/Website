@@ -8,9 +8,27 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 behavior: 'smooth',
                 block: 'start'
             });
+            // Close mobile menu if open
+            const navMenu = document.querySelector('.nav-menu');
+            const menuToggle = document.querySelector('.mobile-menu-toggle');
+            if (navMenu && menuToggle) {
+                navMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
+            }
         }
     });
 });
+
+// Mobile menu toggle
+const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+const navMenu = document.querySelector('.nav-menu');
+
+if (mobileMenuToggle && navMenu) {
+    mobileMenuToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('active');
+        mobileMenuToggle.classList.toggle('active');
+    });
+}
 
 // Add scroll effect to header
 let lastScroll = 0;
@@ -55,14 +73,15 @@ document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
 document.querySelectorAll('.btn').forEach(button => {
     if (button.textContent.includes('Start') || button.textContent.includes('Get Started')) {
         button.addEventListener('click', (e) => {
-            // For demo purposes, just show an alert
+            // For demo purposes, scroll to contact section
             // In production, this would redirect to a signup page
             if (!button.getAttribute('href') || button.getAttribute('href') === '#' || button.getAttribute('href') === '#get-started') {
                 e.preventDefault();
-                alert('Welcome to EzClippin! Signup functionality coming soon.');
+                const contactSection = document.querySelector('#contact');
+                if (contactSection) {
+                    contactSection.scrollIntoView({ behavior: 'smooth' });
+                }
             }
         });
     }
 });
-
-console.log('🎬 EzClippin website loaded successfully!');
