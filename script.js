@@ -106,16 +106,6 @@ window.addEventListener('click', (e) => {
     }
 });
 
-// Handle form submissions (placeholder - would integrate with backend)
-document.querySelectorAll('.auth-form form').forEach(form => {
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        // Close modal and show success message
-        modal.classList.remove('active');
-        // In production, this would actually authenticate and redirect to dashboard
-    });
-});
-
 // Password validation and strength checking
 const signupPassword = document.getElementById('signup-password');
 const signupConfirm = document.getElementById('signup-confirm');
@@ -198,15 +188,33 @@ if (signupConfirm) {
     });
 }
 
+// Add input listeners for other fields to check form validity
+const nameField = document.getElementById('signup-name');
+const emailField = document.getElementById('signup-email');
+const phoneField = document.getElementById('signup-phone');
+const termsCheckbox = document.getElementById('terms');
+
+if (nameField) nameField.addEventListener('input', checkFormValidity);
+if (emailField) emailField.addEventListener('input', checkFormValidity);
+if (phoneField) phoneField.addEventListener('input', checkFormValidity);
+if (termsCheckbox) termsCheckbox.addEventListener('change', checkFormValidity);
+
 // Check overall form validity
 function checkFormValidity() {
     const password = signupPassword ? signupPassword.value : '';
     const confirm = signupConfirm ? signupConfirm.value : '';
+    const name = document.getElementById('signup-name') ? document.getElementById('signup-name').value : '';
+    const email = document.getElementById('signup-email') ? document.getElementById('signup-email').value : '';
+    const phone = document.getElementById('signup-phone') ? document.getElementById('signup-phone').value : '';
+    const terms = document.getElementById('terms') ? document.getElementById('terms').checked : false;
+    
     const isPasswordValid = validatePassword(password);
     const doPasswordsMatch = password === confirm && password.length > 0;
+    const areFieldsFilled = name.length > 0 && email.length > 0 && phone.length >= 10;
+    const areTermsAccepted = terms;
     
     if (signupSubmitBtn) {
-        signupSubmitBtn.disabled = !(isPasswordValid && doPasswordsMatch);
+        signupSubmitBtn.disabled = !(isPasswordValid && doPasswordsMatch && areFieldsFilled && areTermsAccepted);
     }
 }
 
@@ -268,6 +276,20 @@ if (verificationForm) {
         // Collect verification code
         const code = Array.from(verificationDigits).map(input => input.value).join('');
         
+        // Validate all digits are entered
+        if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+            // Show error message instead of alert
+            const errorMsg = document.createElement('small');
+            errorMsg.style.color = '#ef4444';
+            errorMsg.textContent = 'Please enter all 6 digits';
+            const submitBtn = verificationForm.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.nextElementSibling) {
+                submitBtn.parentNode.insertBefore(errorMsg, submitBtn.nextSibling);
+                setTimeout(() => errorMsg.remove(), 3000);
+            }
+            return;
+        }
+        
         // In production: Verify code with backend
         console.log('Verification code:', code);
         
@@ -291,7 +313,17 @@ if (resendCodeBtn) {
         e.preventDefault();
         // In production: Resend SMS code
         console.log('Resending SMS verification code');
-        alert('Verification code resent!');
+        
+        // Show success message
+        const successMsg = document.createElement('small');
+        successMsg.style.color = '#10b981';
+        successMsg.textContent = 'Code resent successfully!';
+        const parentDiv = resendCodeBtn.parentElement;
+        if (parentDiv && !parentDiv.querySelector('.success-message')) {
+            successMsg.className = 'success-message';
+            parentDiv.appendChild(successMsg);
+            setTimeout(() => successMsg.remove(), 3000);
+        }
     });
 }
 
