@@ -110,8 +110,9 @@ window.addEventListener('click', (e) => {
 document.querySelectorAll('.auth-form form').forEach(form => {
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        alert('Authentication system will be integrated with your backend. This is a demo.');
+        // Close modal and show success message
         modal.classList.remove('active');
+        // In production, this would actually authenticate and redirect to dashboard
     });
 });
 
