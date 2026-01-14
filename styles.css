@@ -470,6 +470,11 @@ body {
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* Mobile Menu Toggle - hidden by default */
+.mobile-menu-toggle {
+    display: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-menu {
@@ -555,10 +560,6 @@ body {
     .pricing-grid {
         grid-template-columns: 1fr;
     }
-}
-
-.mobile-menu-toggle {
-    display: none;
 }
 
 /* Smooth Scrolling */
