@@ -17,7 +17,18 @@
     <header class="header">
         <nav class="nav-container">
             <div class="logo">
-                <span class="logo-icon">🎬</span>
+                <svg class="logo-svg" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="40" height="40" rx="8" fill="url(#logo-gradient)"/>
+                    <path d="M12 15L20 20L12 25V15Z" fill="white"/>
+                    <rect x="22" y="15" width="6" height="10" rx="1" fill="white"/>
+                    <circle cx="30" cy="12" r="3" fill="#FF6B6B"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#6366f1"/>
+                            <stop offset="1" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
                 <span class="logo-text">EzClippin</span>
             </div>
             <ul class="nav-menu">
@@ -27,7 +38,8 @@
                 <li><a href="#contact">Contact</a></li>
             </ul>
             <div class="nav-cta">
-                <a href="#get-started" class="btn btn-primary">Get Started</a>
+                <a href="#" class="btn-link" id="login-btn">Login</a>
+                <a href="#" class="btn btn-primary" id="signup-btn">Sign Up</a>
             </div>
             <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">
                 <span></span>
@@ -49,21 +61,21 @@
                 Save hours of editing time and never miss a great moment.
             </p>
             <div class="hero-cta">
-                <a href="#get-started" class="btn btn-large btn-primary">Start Clipping for Free</a>
+                <a href="#" class="btn btn-large btn-primary signup-trigger">Start Clipping for Free</a>
                 <a href="#how-it-works" class="btn btn-large btn-secondary">Learn More</a>
             </div>
             <div class="hero-stats">
                 <div class="stat">
-                    <div class="stat-number">10K+</div>
-                    <div class="stat-label">Clips Generated</div>
+                    <div class="stat-number" id="clips-created">0</div>
+                    <div class="stat-label">Clips Created</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">500+</div>
-                    <div class="stat-label">Active Creators</div>
+                    <div class="stat-number" id="hours-saved">0</div>
+                    <div class="stat-label">Hours Saved</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">98%</div>
-                    <div class="stat-label">Satisfaction Rate</div>
+                    <div class="stat-number" id="social-posts">0</div>
+                    <div class="stat-label">Social Media Posts</div>
                 </div>
             </div>
         </div>
@@ -79,37 +91,37 @@
                 <div class="feature-card">
                     <div class="feature-icon">🤖</div>
                     <h3>AI-Powered Detection</h3>
-                    <p>Our advanced AI automatically identifies the best moments from your streams - kills, wins, funny moments, and more.</p>
+                    <p>Our advanced AI automatically identifies the best moments from your streams - kills, wins, funny moments, and more. Using machine learning trained on millions of clips, our system recognizes exciting gameplay, emotional reactions, and viral-worthy content in real-time.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">⚡</div>
-                    <h3>Lightning Fast</h3>
-                    <p>Get your clips processed in seconds. No more waiting hours for rendering or manual editing.</p>
+                    <h3>Lightning Fast Processing</h3>
+                    <p>Get your clips processed in seconds, not hours. Our cloud infrastructure handles rendering at blazing speeds, so you can share your best moments while they're still fresh. No more waiting for manual editing or slow exports.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">🎨</div>
-                    <h3>Customizable</h3>
-                    <p>Fine-tune detection settings, add custom overlays, and personalize your clips to match your brand.</p>
+                    <h3>Fully Customizable</h3>
+                    <p>Fine-tune detection settings to match your content style. Add custom overlays, branded intros/outros, and personalize your clips to match your brand identity. Choose from professional templates or create your own unique look.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">📤</div>
                     <h3>Multi-Platform Export</h3>
-                    <p>Share directly to TikTok, YouTube Shorts, Instagram Reels, and more with one click.</p>
+                    <p>Share directly to TikTok, YouTube Shorts, Instagram Reels, Twitter, and more with one click. Automatic formatting for each platform's requirements ensures your content looks perfect everywhere. Schedule posts or publish instantly.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">🔒</div>
                     <h3>Secure & Private</h3>
-                    <p>Your content is safe with us. We use industry-standard encryption and never share your data.</p>
+                    <p>Your content is safe with us. We use industry-standard encryption, secure cloud storage, and never share your data with third parties. Full GDPR compliance and SOC 2 certified infrastructure protect your streams and clips.</p>
                 </div>
                 
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
-                    <h3>Analytics Dashboard</h3>
-                    <p>Track your clip performance, engagement metrics, and optimize your content strategy.</p>
+                    <h3>Advanced Analytics</h3>
+                    <p>Track your clip performance with detailed engagement metrics. See which moments resonate with your audience, optimize your content strategy, and grow your following faster. Real-time dashboards show views, shares, and conversion rates.</p>
                 </div>
             </div>
         </div>
@@ -126,7 +138,7 @@
                     <div class="step-number">1</div>
                     <div class="step-content">
                         <h3>Connect Your Stream</h3>
-                        <p>Link your Twitch, YouTube, or upload directly from your recording software.</p>
+                        <p>Link your Twitch, YouTube, or upload directly from your recording software like OBS or Streamlabs. Our platform integrates seamlessly with all major streaming services. Set up takes less than 2 minutes with our simple authentication process.</p>
                     </div>
                 </div>
                 
@@ -134,15 +146,15 @@
                     <div class="step-number">2</div>
                     <div class="step-content">
                         <h3>AI Does the Work</h3>
-                        <p>Our AI analyzes your content and automatically creates clips of the best moments.</p>
+                        <p>Our AI analyzes your content in real-time and automatically creates clips of the best moments. You can customize detection sensitivity, preferred clip length, and content type. The system learns from your preferences to get better over time.</p>
                     </div>
                 </div>
                 
                 <div class="step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h3>Share & Grow</h3>
-                        <p>Review, customize, and share your clips across all social platforms instantly.</p>
+                        <h3>Review, Edit & Share</h3>
+                        <p>Review your auto-generated clips in an intuitive dashboard. Make quick edits if needed, add captions or effects, then share across all your social platforms instantly. Track performance and engagement in real-time to maximize your reach.</p>
                     </div>
                 </div>
             </div>
@@ -168,7 +180,7 @@
                         <li>✓ Basic AI detection</li>
                         <li>✓ Community support</li>
                     </ul>
-                    <a href="#get-started" class="btn btn-secondary btn-block">Get Started</a>
+                    <a href="#" class="btn btn-secondary btn-block signup-trigger">Get Started</a>
                 </div>
                 
                 <div class="pricing-card featured">
@@ -186,7 +198,7 @@
                         <li>✓ Priority support</li>
                         <li>✓ Analytics dashboard</li>
                     </ul>
-                    <a href="#get-started" class="btn btn-primary btn-block">Start Free Trial</a>
+                    <a href="#" class="btn btn-primary btn-block signup-trigger">Start Free Trial</a>
                 </div>
                 
                 <div class="pricing-card">
@@ -213,7 +225,7 @@
         <div class="container">
             <h2 class="cta-title">Ready to Transform Your Content?</h2>
             <p class="cta-subtitle">Join thousands of creators who are saving time and growing their audience with EzClippin</p>
-            <a href="#" class="btn btn-large btn-primary">Start Your Free Trial</a>
+            <a href="#" class="btn btn-large btn-primary signup-trigger">Start Your Free Trial</a>
         </div>
     </section>
 
@@ -223,7 +235,18 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <div class="footer-logo">
-                        <span class="logo-icon">🎬</span>
+                        <svg class="logo-svg" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="40" height="40" rx="8" fill="url(#footer-logo-gradient)"/>
+                            <path d="M12 15L20 20L12 25V15Z" fill="white"/>
+                            <rect x="22" y="15" width="6" height="10" rx="1" fill="white"/>
+                            <circle cx="30" cy="12" r="3" fill="#FF6B6B"/>
+                            <defs>
+                                <linearGradient id="footer-logo-gradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#6366f1"/>
+                                    <stop offset="1" stop-color="#8b5cf6"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
                         <span class="logo-text">EzClippin</span>
                     </div>
                     <p class="footer-description">
@@ -265,6 +288,70 @@
             </div>
         </div>
     </footer>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            
+            <!-- Login Form -->
+            <div id="login-form" class="auth-form">
+                <h2>Welcome Back</h2>
+                <p class="auth-subtitle">Login to your EzClippin account</p>
+                <form>
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" placeholder="Enter your password" required>
+                    </div>
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">Remember me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Login</button>
+                    <div class="form-footer">
+                        <a href="#" class="text-link">Forgot password?</a>
+                        <p>Don't have an account? <a href="#" class="text-link" id="show-signup">Sign up</a></p>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Signup Form -->
+            <div id="signup-form" class="auth-form" style="display: none;">
+                <h2>Create Account</h2>
+                <p class="auth-subtitle">Start your free trial today</p>
+                <form>
+                    <div class="form-group">
+                        <label for="signup-name">Full Name</label>
+                        <input type="text" id="signup-name" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" placeholder="Create a password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-confirm">Confirm Password</label>
+                        <input type="password" id="signup-confirm" placeholder="Confirm your password" required>
+                    </div>
+                    <div class="form-group-checkbox">
+                        <input type="checkbox" id="terms" required>
+                        <label for="terms">I agree to the <a href="#" class="text-link">Terms of Service</a> and <a href="#" class="text-link">Privacy Policy</a></label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                    <div class="form-footer">
+                        <p>Already have an account? <a href="#" class="text-link" id="show-login">Login</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

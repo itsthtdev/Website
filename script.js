@@ -1,19 +1,22 @@
 // Smooth scroll for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-            // Close mobile menu if open
-            const navMenu = document.querySelector('.nav-menu');
-            const menuToggle = document.querySelector('.mobile-menu-toggle');
-            if (navMenu && menuToggle) {
-                navMenu.classList.remove('active');
-                menuToggle.classList.remove('active');
+        const href = this.getAttribute('href');
+        if (href && href !== '#' && !this.classList.contains('signup-trigger') && this.id !== 'login-btn' && this.id !== 'signup-btn' && this.id !== 'show-login' && this.id !== 'show-signup') {
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                // Close mobile menu if open
+                const navMenu = document.querySelector('.nav-menu');
+                const menuToggle = document.querySelector('.mobile-menu-toggle');
+                if (navMenu && menuToggle) {
+                    navMenu.classList.remove('active');
+                    menuToggle.classList.remove('active');
+                }
             }
         }
     });
@@ -28,6 +31,135 @@ if (mobileMenuToggle && navMenu) {
         navMenu.classList.toggle('active');
         mobileMenuToggle.classList.toggle('active');
     });
+}
+
+// Auth Modal functionality
+const modal = document.getElementById('auth-modal');
+const loginForm = document.getElementById('login-form');
+const signupForm = document.getElementById('signup-form');
+const modalClose = document.querySelector('.modal-close');
+const loginBtn = document.getElementById('login-btn');
+const signupBtn = document.getElementById('signup-btn');
+const showSignupLink = document.getElementById('show-signup');
+const showLoginLink = document.getElementById('show-login');
+const signupTriggers = document.querySelectorAll('.signup-trigger');
+
+// Open modal with signup form
+if (signupBtn) {
+    signupBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.classList.add('active');
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'block';
+    });
+}
+
+// Open modal with login form
+if (loginBtn) {
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.classList.add('active');
+        signupForm.style.display = 'none';
+        loginForm.style.display = 'block';
+    });
+}
+
+// All signup triggers
+signupTriggers.forEach(trigger => {
+    trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        modal.classList.add('active');
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'block';
+    });
+});
+
+// Switch to signup form
+if (showSignupLink) {
+    showSignupLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'block';
+    });
+}
+
+// Switch to login form
+if (showLoginLink) {
+    showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        signupForm.style.display = 'none';
+        loginForm.style.display = 'block';
+    });
+}
+
+// Close modal
+if (modalClose) {
+    modalClose.addEventListener('click', () => {
+        modal.classList.remove('active');
+    });
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.classList.remove('active');
+    }
+});
+
+// Handle form submissions (placeholder - would integrate with backend)
+document.querySelectorAll('.auth-form form').forEach(form => {
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Authentication system will be integrated with your backend. This is a demo.');
+        modal.classList.remove('active');
+    });
+});
+
+// Animated counters for stats
+function animateCounter(element, target, duration = 2000) {
+    let start = 0;
+    const increment = target / (duration / 16);
+    const timer = setInterval(() => {
+        start += increment;
+        if (start >= target) {
+            element.textContent = formatNumber(target);
+            clearInterval(timer);
+        } else {
+            element.textContent = formatNumber(Math.floor(start));
+        }
+    }, 16);
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+// Initialize counters when hero section is visible
+const heroStats = document.querySelector('.hero-stats');
+if (heroStats) {
+    const statsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const clipsCreated = document.getElementById('clips-created');
+                const hoursSaved = document.getElementById('hours-saved');
+                const socialPosts = document.getElementById('social-posts');
+                
+                if (clipsCreated && clipsCreated.textContent === '0') {
+                    animateCounter(clipsCreated, 0, 1000); // Will show 0 initially
+                    animateCounter(hoursSaved, 0, 1000);
+                    animateCounter(socialPosts, 0, 1000);
+                }
+                statsObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    statsObserver.observe(heroStats);
 }
 
 // Add scroll effect to header
