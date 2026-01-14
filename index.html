@@ -323,32 +323,73 @@
             <div id="signup-form" class="auth-form" style="display: none;">
                 <h2>Create Account</h2>
                 <p class="auth-subtitle">Start your free trial today</p>
-                <form>
+                <form id="signup-form-element">
                     <div class="form-group">
                         <label for="signup-name">Full Name</label>
                         <input type="text" id="signup-name" placeholder="John Doe" required>
                     </div>
                     <div class="form-group">
                         <label for="signup-email">Email</label>
-                        <input type="email" id="signup-email" placeholder="your@email.com" required>
+                        <input type="email" id="signup-email" placeholder="your@email.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-phone">Phone Number</label>
+                        <input type="tel" id="signup-phone" placeholder="+1 (555) 000-0000" required pattern="[\+]?[0-9\s\-\(\)]{10,}" title="Please enter a valid phone number">
+                        <small class="form-help">We'll send you a verification code via SMS</small>
                     </div>
                     <div class="form-group">
                         <label for="signup-password">Password</label>
-                        <input type="password" id="signup-password" placeholder="Create a password" required>
+                        <input type="password" id="signup-password" placeholder="Create a password" required autocomplete="new-password" minlength="8">
+                        <div class="password-strength" id="password-strength">
+                            <div class="password-strength-bar"></div>
+                        </div>
+                        <small class="form-help password-requirements">
+                            Password must contain:
+                            <ul id="password-requirements-list">
+                                <li id="req-length" class="requirement-unmet">At least 8 characters</li>
+                                <li id="req-uppercase" class="requirement-unmet">One uppercase letter</li>
+                                <li id="req-lowercase" class="requirement-unmet">One lowercase letter</li>
+                                <li id="req-number" class="requirement-unmet">One number</li>
+                                <li id="req-special" class="requirement-unmet">One special character (!@#$%^&*)</li>
+                            </ul>
+                        </small>
                     </div>
                     <div class="form-group">
                         <label for="signup-confirm">Confirm Password</label>
-                        <input type="password" id="signup-confirm" placeholder="Confirm your password" required>
+                        <input type="password" id="signup-confirm" placeholder="Confirm your password" required autocomplete="new-password">
+                        <small class="form-help" id="password-match-message"></small>
                     </div>
                     <div class="form-group-checkbox">
                         <input type="checkbox" id="terms" required>
                         <label for="terms">I agree to the <a href="#" class="text-link">Terms of Service</a> and <a href="#" class="text-link">Privacy Policy</a></label>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                    <button type="submit" class="btn btn-primary btn-block" id="signup-submit-btn" disabled>Create Account</button>
                     <div class="form-footer">
                         <p>Already have an account? <a href="#" class="text-link" id="show-login">Login</a></p>
                     </div>
                 </form>
+                
+                <!-- SMS Verification Step (hidden initially) -->
+                <div id="sms-verification" class="auth-form" style="display: none;">
+                    <h2>Verify Your Phone</h2>
+                    <p class="auth-subtitle">Enter the 6-digit code sent to <span id="verification-phone"></span></p>
+                    <form id="verification-form">
+                        <div class="form-group">
+                            <div class="verification-code-inputs">
+                                <input type="text" maxlength="1" class="verification-digit" id="digit-1" pattern="[0-9]" required>
+                                <input type="text" maxlength="1" class="verification-digit" id="digit-2" pattern="[0-9]" required>
+                                <input type="text" maxlength="1" class="verification-digit" id="digit-3" pattern="[0-9]" required>
+                                <input type="text" maxlength="1" class="verification-digit" id="digit-4" pattern="[0-9]" required>
+                                <input type="text" maxlength="1" class="verification-digit" id="digit-5" pattern="[0-9]" required>
+                                <input type="text" maxlength="1" class="verification-digit" id="digit-6" pattern="[0-9]" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Verify & Complete Signup</button>
+                        <div class="form-footer">
+                            <a href="#" class="text-link" id="resend-code">Didn't receive code? Resend</a>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
