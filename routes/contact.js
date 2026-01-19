@@ -2,6 +2,18 @@ const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
+const rateLimit = require('express-rate-limit');
+
+// Helper function to escape HTML to prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // Email transporter configuration
 const createTransporter = () => {
@@ -24,8 +36,17 @@ const validateContactForm = [
   body('message').trim().isLength({ min: 10 }).withMessage('Message must be at least 10 characters'),
 ];
 
+// Rate limiter specifically for contact form submissions
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 contact submissions per 15 minutes
+  message: 'Too many contact form submissions from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Contact form submission
-router.post('/submit', validateContactForm, async (req, res) => {
+router.post('/submit', contactLimiter, validateContactForm, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -52,15 +73,15 @@ router.post('/submit', validateContactForm, async (req, res) => {
         await transporter.sendMail({
           from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
           to: process.env.EMAIL_USER,
-          subject: `[EzClippin Contact] ${subject}`,
+          subject: `[EzClippin Contact] ${escapeHtml(subject)}`,
           html: `
             <h2>New Contact Form Submission</h2>
-            <p><strong>Type:</strong> ${type}</p>
-            <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Type:</strong> ${escapeHtml(type)}</p>
+            <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+            <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+            <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
             <p><strong>Message:</strong></p>
-            <p>${message.replace(/\n/g, '<br>')}</p>
+            <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
             <hr>
             <p><small>Submitted at: ${new Date().toISOString()}</small></p>
           `,
@@ -73,10 +94,10 @@ router.post('/submit', validateContactForm, async (req, res) => {
           subject: 'Thank you for contacting EzClippin',
           html: `
             <h2>Thank you for reaching out!</h2>
-            <p>Hi ${name},</p>
+            <p>Hi ${escapeHtml(name)},</p>
             <p>We've received your message and will get back to you as soon as possible.</p>
             <p><strong>Your message:</strong></p>
-            <p>${message.replace(/\n/g, '<br>')}</p>
+            <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
             <hr>
             <p>Best regards,<br>The EzClippin Team</p>
           `,
@@ -98,7 +119,7 @@ router.post('/submit', validateContactForm, async (req, res) => {
 });
 
 // Submit complaint/support ticket
-router.post('/complaint', validateContactForm, async (req, res) => {
+router.post('/complaint', contactLimiter, validateContactForm, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -124,15 +145,15 @@ router.post('/complaint', validateContactForm, async (req, res) => {
         await transporter.sendMail({
           from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
           to: process.env.EMAIL_USER,
-          subject: `[EzClippin COMPLAINT - ${priority.toUpperCase()}] ${subject}`,
+          subject: `[EzClippin COMPLAINT - ${escapeHtml(priority).toUpperCase()}] ${escapeHtml(subject)}`,
           html: `
             <h2>New Complaint Received</h2>
-            <p><strong>Priority:</strong> <span style="color: ${priority === 'high' ? 'red' : 'orange'};">${priority.toUpperCase()}</span></p>
-            <p><strong>Name:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Subject:</strong> ${subject}</p>
+            <p><strong>Priority:</strong> <span style="color: ${priority === 'high' ? 'red' : 'orange'};">${escapeHtml(priority).toUpperCase()}</span></p>
+            <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+            <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+            <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
             <p><strong>Complaint:</strong></p>
-            <p>${message.replace(/\n/g, '<br>')}</p>
+            <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
             <hr>
             <p><small>Submitted at: ${new Date().toISOString()}</small></p>
           `,

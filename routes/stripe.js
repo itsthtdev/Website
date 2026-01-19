@@ -56,8 +56,13 @@ router.post('/create-payment-intent', verifyToken, async (req, res) => {
   try {
     const { amount, currency = 'usd', description } = req.body;
 
-    if (!amount || amount < 50) { // Minimum $0.50
-      return res.status(400).json({ error: 'Invalid amount' });
+    // Validate amount (minimum $0.50, maximum $999,999.99)
+    if (!amount || amount < 50) {
+      return res.status(400).json({ error: 'Amount must be at least $0.50' });
+    }
+    
+    if (amount > 99999999) { // $999,999.99 max
+      return res.status(400).json({ error: 'Amount exceeds maximum allowed value' });
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
@@ -138,7 +143,8 @@ router.post('/subscription/cancel', verifyToken, async (req, res) => {
 });
 
 // Stripe webhook handler
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// Note: Raw body parsing is handled at server.js level before this route
+router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 

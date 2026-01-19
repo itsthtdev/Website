@@ -27,7 +27,13 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Body parsing middleware
+
+// Stripe webhook route must be mounted BEFORE body parser
+// because Stripe requires raw body for signature verification
+const stripeRoutes = require('./routes/stripe');
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeRoutes);
+
+// Body parsing middleware (applied after webhook route)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -47,12 +53,12 @@ app.use(express.static('.', {
 // API Routes
 const authRoutes = require('./routes/auth');
 const downloadRoutes = require('./routes/download');
-const stripeRoutes = require('./routes/stripe');
+// stripeRoutes already loaded above for webhook
 const contactRoutes = require('./routes/contact');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/download', downloadRoutes);
-app.use('/api/stripe', stripeRoutes);
+app.use('/api/stripe', stripeRoutes); // Other Stripe routes
 app.use('/api/contact', contactRoutes);
 
 // Health check endpoint

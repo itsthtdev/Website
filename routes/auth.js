@@ -53,7 +53,7 @@ router.post('/signup', validateSignup, async (req, res) => {
 
     // Store user (in production, save to database)
     const user = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name,
       email,
       phone,
