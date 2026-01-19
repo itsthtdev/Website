@@ -105,14 +105,31 @@ router.post('/subscription/cancel', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Subscription ID is required' });
     }
 
+    // Retrieve subscription to verify ownership before cancelling
+    let subscription;
+    try {
+      subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    } catch (err) {
+      console.error('Subscription retrieve error:', err);
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    const subscriptionUserId =
+      subscription && subscription.metadata && subscription.metadata.userId;
+
+    // Ensure the subscription belongs to the authenticated user
+    if (!subscriptionUserId || String(subscriptionUserId) !== String(req.userId)) {
+      return res.status(403).json({ error: 'You are not authorized to cancel this subscription' });
+    }
+
     // Cancel subscription at period end
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
     });
 
     res.json({
       message: 'Subscription will be canceled at period end',
-      cancelAt: subscription.cancel_at
+      cancelAt: updatedSubscription.cancel_at
     });
   } catch (error) {
     console.error('Subscription cancel error:', error);
