@@ -273,7 +273,7 @@ if (signupFormElement) {
         e.preventDefault();
         
         const phone = document.getElementById('signup-phone').value;
-        // Passwords are NOT stored here - they would be sent securely to backend via HTTPS
+        // Passwords are sent securely to backend via HTTPS
         // Backend must hash passwords using bcrypt/argon2 before storage
         
         // Show SMS verification step
@@ -535,11 +535,3 @@ if ('IntersectionObserver' in window) {
         el.style.transform = 'translateY(0)';
     });
 }
-
-// Handle CTA button clicks
-document.querySelectorAll('[data-action="signup"]').forEach(button => {
-    button.addEventListener('click', (e) => {
-        // CTA buttons marked with data-action="signup" will trigger modal
-        // This is handled by existing signup-trigger class handlers
-    });
-});
