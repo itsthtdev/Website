@@ -13,11 +13,20 @@ app.use(helmet({
 }));
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
-  credentials: true
-}));
+const isProduction = process.env.NODE_ENV === 'production';
 
+if (isProduction && !process.env.CLIENT_URL) {
+  throw new Error('CLIENT_URL must be configured in production environment for CORS.');
+}
+
+const corsOptions = {
+  origin: isProduction
+    ? process.env.CLIENT_URL
+    : (process.env.CLIENT_URL || '*'),
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
