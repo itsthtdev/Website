@@ -2,22 +2,25 @@
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
-        if (href && href !== '#' && !this.classList.contains('signup-trigger') && this.id !== 'login-btn' && this.id !== 'signup-btn' && this.id !== 'show-login' && this.id !== 'show-signup') {
-            e.preventDefault();
-            const target = document.querySelector(href);
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-                // Close mobile menu if open
-                const navMenu = document.querySelector('.nav-menu');
-                const menuToggle = document.querySelector('.mobile-menu-toggle');
-                if (navMenu && menuToggle) {
-                    navMenu.classList.remove('active');
-                    menuToggle.classList.remove('active');
-                }
-            }
+        // Only handle valid in-page anchors that have an existing target
+        if (!href || href === '#') {
+            return;
+        }
+        const target = document.querySelector(href);
+        if (!target) {
+            return;
+        }
+        e.preventDefault();
+        target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+        // Close mobile menu if open
+        const navMenu = document.querySelector('.nav-menu');
+        const menuToggle = document.querySelector('.mobile-menu-toggle');
+        if (navMenu && menuToggle) {
+            navMenu.classList.remove('active');
+            menuToggle.classList.remove('active');
         }
     });
 });
@@ -95,16 +98,28 @@ if (showLoginLink) {
 // Close modal
 if (modalClose) {
     modalClose.addEventListener('click', () => {
-        modal.classList.remove('active');
+        closeModal();
     });
 }
 
 // Close modal when clicking outside
 window.addEventListener('click', (e) => {
     if (e.target === modal) {
-        modal.classList.remove('active');
+        closeModal();
     }
 });
+
+// Helper function to close modal and reset state
+function closeModal() {
+    modal.classList.remove('active');
+    // Reset forms to initial state
+    loginForm.style.display = 'block';
+    signupForm.style.display = 'none';
+    const smsVerification = document.getElementById('sms-verification');
+    if (smsVerification) {
+        smsVerification.style.display = 'none';
+    }
+}
 
 // Password validation and strength checking
 const signupPassword = document.getElementById('signup-password');
@@ -149,7 +164,7 @@ function calculatePasswordStrength(password) {
 if (signupPassword) {
     signupPassword.addEventListener('input', () => {
         const password = signupPassword.value;
-        const isValid = validatePassword(password);
+        validatePassword(password);
         const strength = calculatePasswordStrength(password);
         
         // Update strength bar
@@ -160,6 +175,18 @@ if (signupPassword) {
             passwordStrengthBar.classList.add('medium');
         } else {
             passwordStrengthBar.classList.add('strong');
+        }
+        
+        // Update password match message when password changes
+        if (signupConfirm && signupConfirm.value.length > 0) {
+            const confirm = signupConfirm.value;
+            if (password === confirm) {
+                passwordMatchMessage.textContent = '✓ Passwords match';
+                passwordMatchMessage.classList.add('match');
+            } else {
+                passwordMatchMessage.textContent = '✗ Passwords do not match';
+                passwordMatchMessage.classList.remove('match');
+            }
         }
         
         checkFormValidity();
@@ -218,15 +245,33 @@ function checkFormValidity() {
     }
 }
 
+// Handle login form submission
+const loginFormElement = document.getElementById('login-form-element');
+if (loginFormElement) {
+    loginFormElement.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // Get form values (in production, send to backend via HTTPS)
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        // In production: Send to backend for authentication
+        // Backend must verify credentials securely
+        
+        // Close modal (in production, redirect to dashboard after successful login)
+        modal.classList.remove('active');
+        
+        // Reset form
+        loginFormElement.reset();
+    });
+}
+
 // Handle signup form submission
 const signupFormElement = document.getElementById('signup-form-element');
 if (signupFormElement) {
     signupFormElement.addEventListener('submit', (e) => {
         e.preventDefault();
         
-        // Get form values (NOTE: In production, passwords should NEVER be logged or stored in plain text)
-        const name = document.getElementById('signup-name').value;
-        const email = document.getElementById('signup-email').value;
         const phone = document.getElementById('signup-phone').value;
         // Passwords are NOT stored here - they would be sent securely to backend via HTTPS
         // Backend must hash passwords using bcrypt/argon2 before storage
@@ -237,33 +282,92 @@ if (signupFormElement) {
         document.getElementById('verification-phone').textContent = phone;
         
         // In production: Send verification code via SMS API (Twilio, AWS SNS, etc.)
-        console.log('SMS verification code would be sent to:', phone);
     });
 }
 
 // Handle verification code inputs
 const verificationDigits = document.querySelectorAll('.verification-digit');
 verificationDigits.forEach((digit, index) => {
+    // Select value on focus for easy editing
+    digit.addEventListener('focus', (e) => {
+        setTimeout(() => {
+            if (e.target.select) {
+                e.target.select();
+            }
+        }, 0);
+    });
+    
     digit.addEventListener('input', (e) => {
-        const value = e.target.value;
+        let value = e.target.value;
         
-        // Only allow numbers
-        if (!/^[0-9]$/.test(value)) {
+        // Keep only digits
+        value = value.replace(/\D/g, '');
+        
+        if (!value) {
             e.target.value = '';
             return;
         }
         
+        // Normalize to a single digit
+        if (value.length > 1) {
+            value = value.charAt(value.length - 1);
+        }
+        
+        e.target.value = value;
+        
         // Auto-focus next input
-        if (value && index < verificationDigits.length - 1) {
-            verificationDigits[index + 1].focus();
+        if (index < verificationDigits.length - 1) {
+            const nextDigit = verificationDigits[index + 1];
+            nextDigit.focus();
+            if (nextDigit.select) {
+                nextDigit.select();
+            }
         }
     });
     
     digit.addEventListener('keydown', (e) => {
-        // Handle backspace
+        // Handle backspace: move to previous input when current is empty
         if (e.key === 'Backspace' && !e.target.value && index > 0) {
-            verificationDigits[index - 1].focus();
+            const prevDigit = verificationDigits[index - 1];
+            prevDigit.focus();
+            if (prevDigit.select) {
+                prevDigit.select();
+            }
+            return;
         }
+        
+        // Handle arrow keys for navigation
+        if (e.key === 'ArrowLeft' && index > 0) {
+            e.preventDefault();
+            const prevDigit = verificationDigits[index - 1];
+            prevDigit.focus();
+            if (prevDigit.select) {
+                prevDigit.select();
+            }
+        } else if (e.key === 'ArrowRight' && index < verificationDigits.length - 1) {
+            e.preventDefault();
+            const nextDigit = verificationDigits[index + 1];
+            nextDigit.focus();
+            if (nextDigit.select) {
+                nextDigit.select();
+            }
+        }
+    });
+    
+    // Handle paste event
+    digit.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text');
+        const digits = pasteData.replace(/\D/g, '').slice(0, 6);
+        
+        // Fill in the digits starting from current position
+        for (let i = 0; i < digits.length && (index + i) < verificationDigits.length; i++) {
+            verificationDigits[index + i].value = digits[i];
+        }
+        
+        // Focus the last filled digit or next empty one
+        const nextIndex = Math.min(index + digits.length, verificationDigits.length - 1);
+        verificationDigits[nextIndex].focus();
     });
 });
 
@@ -278,20 +382,19 @@ if (verificationForm) {
         
         // Validate all digits are entered
         if (code.length !== 6 || !/^\d{6}$/.test(code)) {
-            // Show error message instead of alert
-            const errorMsg = document.createElement('small');
-            errorMsg.style.color = '#ef4444';
-            errorMsg.textContent = 'Please enter all 6 digits';
-            const submitBtn = verificationForm.querySelector('button[type="submit"]');
-            if (submitBtn && !submitBtn.nextElementSibling) {
-                submitBtn.parentNode.insertBefore(errorMsg, submitBtn.nextSibling);
-                setTimeout(() => errorMsg.remove(), 3000);
+            // Show error message
+            const errorMsg = document.getElementById('verification-error-message');
+            if (errorMsg) {
+                errorMsg.style.color = '#ef4444';
+                errorMsg.textContent = 'Please enter all 6 digits';
+                setTimeout(() => {
+                    errorMsg.textContent = '';
+                }, 3000);
             }
             return;
         }
         
         // In production: Verify code with backend
-        console.log('Verification code:', code);
         
         // Close modal and show success
         modal.classList.remove('active');
@@ -312,18 +415,20 @@ if (resendCodeBtn) {
     resendCodeBtn.addEventListener('click', (e) => {
         e.preventDefault();
         // In production: Resend SMS code
-        console.log('Resending SMS verification code');
+        
+        // Remove any existing success messages
+        const existingMsg = resendCodeBtn.parentElement.querySelector('.success-message');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
         
         // Show success message
         const successMsg = document.createElement('small');
         successMsg.style.color = '#10b981';
         successMsg.textContent = 'Code resent successfully!';
-        const parentDiv = resendCodeBtn.parentElement;
-        if (parentDiv && !parentDiv.querySelector('.success-message')) {
-            successMsg.className = 'success-message';
-            parentDiv.appendChild(successMsg);
-            setTimeout(() => successMsg.remove(), 3000);
-        }
+        successMsg.className = 'success-message';
+        resendCodeBtn.parentElement.appendChild(successMsg);
+        setTimeout(() => successMsg.remove(), 3000);
     });
 }
 
@@ -351,27 +456,40 @@ function formatNumber(num) {
     return num.toString();
 }
 
-// Initialize counters when hero section is visible
+// Initialize counters when hero section is visible (with fallback for older browsers)
 const heroStats = document.querySelector('.hero-stats');
 if (heroStats) {
-    const statsObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const clipsCreated = document.getElementById('clips-created');
-                const hoursSaved = document.getElementById('hours-saved');
-                const socialPosts = document.getElementById('social-posts');
-                
-                if (clipsCreated && clipsCreated.textContent === '0') {
-                    animateCounter(clipsCreated, 0, 1000); // Will show 0 initially
-                    animateCounter(hoursSaved, 0, 1000);
-                    animateCounter(socialPosts, 0, 1000);
+    if ('IntersectionObserver' in window) {
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const clipsCreated = document.getElementById('clips-created');
+                    const hoursSaved = document.getElementById('hours-saved');
+                    const socialPosts = document.getElementById('social-posts');
+                    
+                    if (clipsCreated && clipsCreated.textContent === '0') {
+                        animateCounter(clipsCreated, 0, 1000);
+                        animateCounter(hoursSaved, 0, 1000);
+                        animateCounter(socialPosts, 0, 1000);
+                    }
+                    statsObserver.unobserve(entry.target);
                 }
-                statsObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.5 });
-    
-    statsObserver.observe(heroStats);
+            });
+        }, { threshold: 0.5 });
+        
+        statsObserver.observe(heroStats);
+    } else {
+        // Fallback for browsers without IntersectionObserver: trigger counters immediately
+        const clipsCreated = document.getElementById('clips-created');
+        const hoursSaved = document.getElementById('hours-saved');
+        const socialPosts = document.getElementById('social-posts');
+        
+        if (clipsCreated && clipsCreated.textContent === '0') {
+            animateCounter(clipsCreated, 0, 1000);
+            animateCounter(hoursSaved, 0, 1000);
+            animateCounter(socialPosts, 0, 1000);
+        }
+    }
 }
 
 // Add scroll effect to header
@@ -387,42 +505,41 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Add animation on scroll for elements
+// Add animation on scroll for elements (with fallback for older browsers)
 const observerOptions = {
     threshold: 0.1,
     rootMargin: '0px 0px -50px 0px'
 };
 
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-}, observerOptions);
-
-// Observe all feature cards, steps, and pricing cards
-document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(20px)';
-    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-    observer.observe(el);
-});
-
-// Handle CTA button clicks (placeholder - you can add actual functionality later)
-document.querySelectorAll('.btn').forEach(button => {
-    if (button.textContent.includes('Start') || button.textContent.includes('Get Started')) {
-        button.addEventListener('click', (e) => {
-            // For demo purposes, scroll to contact section
-            // In production, this would redirect to a signup page
-            if (!button.getAttribute('href') || button.getAttribute('href') === '#' || button.getAttribute('href') === '#get-started') {
-                e.preventDefault();
-                const contactSection = document.querySelector('#contact');
-                if (contactSection) {
-                    contactSection.scrollIntoView({ behavior: 'smooth' });
-                }
+if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
             }
         });
-    }
+    }, observerOptions);
+
+    // Observe all feature cards, steps, and pricing cards
+    document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(el);
+    });
+} else {
+    // Fallback: show elements immediately if IntersectionObserver is not supported
+    document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+    });
+}
+
+// Handle CTA button clicks
+document.querySelectorAll('[data-action="signup"]').forEach(button => {
+    button.addEventListener('click', (e) => {
+        // CTA buttons marked with data-action="signup" will trigger modal
+        // This is handled by existing signup-trigger class handlers
+    });
 });
