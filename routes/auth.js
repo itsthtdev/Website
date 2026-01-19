@@ -121,28 +121,14 @@ router.post('/login', validateLogin, async (req, res) => {
   }
 });
 
-// Verify SMS code endpoint (placeholder)
-router.post('/verify-sms', async (req, res) => {
-  try {
-    const { phone, code } = req.body;
-
-    // In production, verify the code with SMS service (Twilio, AWS SNS, etc.)
-    // For now, accept any 6-digit code
-    if (!code || code.length !== 6) {
-      return res.status(400).json({ error: 'Invalid verification code' });
-    }
-
-    // Update user verification status
-    // In production, find user by phone and update in database
-    
-    res.json({ 
-      message: 'Phone verified successfully',
-      verified: true 
-    });
-  } catch (error) {
-    console.error('SMS verification error:', error);
-    res.status(500).json({ error: 'Verification failed' });
-  }
+// Verify SMS code endpoint
+router.post('/verify-sms', (req, res) => {
+  // SMS verification is not implemented securely yet.
+  // To avoid insecure phone verification bypass, this endpoint is disabled
+  // until proper SMS code generation, delivery, and validation is in place.
+  return res.status(501).json({
+    error: 'SMS verification is not implemented. Phone verification is currently disabled.'
+  });
 });
 
 // Middleware to verify JWT token
