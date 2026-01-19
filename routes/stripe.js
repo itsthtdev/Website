@@ -27,6 +27,10 @@ router.post('/create-checkout-session', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Price ID is required' });
     }
 
+    const allowedPriceIds = Object.values(PRICE_IDS);
+    if (!allowedPriceIds.includes(priceId)) {
+      return res.status(400).json({ error: 'Invalid price ID' });
+    }
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
