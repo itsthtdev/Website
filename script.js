@@ -551,9 +551,8 @@ if (signupFormElement) {
                 document.getElementById('sms-verification').style.display = 'block';
                 document.getElementById('verification-phone').textContent = phone;
                 
-                // Store temp data for after verification
+                // Store temp data for after verification (no auth token before SMS verification)
                 window.tempSignupData = {
-                    token: data.token,
                     user: data.user
                 };
             } else {
