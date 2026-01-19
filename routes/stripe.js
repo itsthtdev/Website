@@ -5,12 +5,6 @@ const { verifyToken } = require('./auth');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
-// Price IDs for different plans (set these in Stripe dashboard)
-const PRICE_IDS = {
-  pro_monthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || 'price_pro_monthly_placeholder',
-  pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || 'price_pro_yearly_placeholder',
-};
-
 // Get Stripe publishable key
 router.get('/config', (req, res) => {
   res.json({
