@@ -1014,11 +1014,6 @@ html {
     }
 }
 
-/* Smooth Scrolling */
-html {
-    scroll-behavior: smooth;
-}
-
 /* Loading Animation */
 @keyframes fadeIn {
     from {
