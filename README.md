@@ -208,6 +208,72 @@ This website is designed to work with the EzClippin auto-clipper software:
 - Downloads are linked to releases from that repository
 - Authentication allows software activation
 
+## GitHub Pages Configuration
+
+This website is configured to be hosted on GitHub Pages with a custom domain.
+
+### Custom Domain Setup
+
+The site is configured to use the custom domain: **EzClippin.studio**
+
+#### DNS Configuration
+
+To use the custom domain, configure the following DNS records with your domain registrar:
+
+**For apex domain (EzClippin.studio):**
+```
+Type: A
+Host: @
+Value: 185.199.108.153
+```
+```
+Type: A
+Host: @
+Value: 185.199.109.153
+```
+```
+Type: A
+Host: @
+Value: 185.199.110.153
+```
+```
+Type: A
+Host: @
+Value: 185.199.111.153
+```
+
+**For www subdomain (optional):**
+```
+Type: CNAME
+Host: www
+Value: itsthtdev.github.io
+```
+
+#### CNAME File
+
+The `CNAME` file in the root directory contains the custom domain name. This file tells GitHub Pages which custom domain to use for the site.
+
+### GitHub Pages Settings
+
+1. Go to repository Settings → Pages
+2. Source: Deploy from a branch
+3. Branch: `main` / `(root)`
+4. Custom domain: `EzClippin.studio`
+5. Enforce HTTPS: ✓ Enabled (after DNS propagation)
+
+### Verification
+
+After DNS records are configured and propagated (can take 24-48 hours):
+1. Visit https://EzClippin.studio to verify the site loads
+2. Check that HTTPS is working
+3. Verify www subdomain redirects (if configured)
+
+### Local Development
+
+For local development, the site runs on `http://localhost:3000` (backend) or can be opened directly in a browser (frontend only).
+
+The custom domain configuration only affects the production deployment on GitHub Pages.
+
 ## Support
 
 For issues or questions:
