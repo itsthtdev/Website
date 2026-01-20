@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
     <!-- Header/Navigation -->
@@ -35,11 +36,16 @@
                 <li><a href="#features">Features</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
                 <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#download">Download</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
-            <div class="nav-cta">
+            <div class="nav-cta" id="nav-cta-logged-out">
                 <a href="#" class="btn-link" id="login-btn">Login</a>
                 <a href="#" class="btn btn-primary" id="signup-btn">Sign Up</a>
+            </div>
+            <div class="nav-cta" id="nav-cta-logged-in" style="display: none;">
+                <a href="#download" class="btn btn-primary">Download</a>
+                <a href="#" class="btn-link" id="logout-btn">Logout</a>
             </div>
             <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">
                 <span></span>
@@ -198,7 +204,7 @@
                         <li>✓ Priority support</li>
                         <li>✓ Analytics dashboard</li>
                     </ul>
-                    <a href="#" class="btn btn-primary btn-block signup-trigger">Start Free Trial</a>
+                    <a href="#" class="btn btn-primary btn-block signup-trigger" data-plan="pro">Start Free Trial</a>
                 </div>
                 
                 <div class="pricing-card">
@@ -220,6 +226,66 @@
         </div>
     </section>
 
+    <!-- Download Section -->
+    <section id="download" class="download-section">
+        <div class="container">
+            <h2 class="section-title">Download EzClippin</h2>
+            <p class="section-subtitle">Get started with automatic clip generation today</p>
+            
+            <div class="download-notice" id="download-login-notice">
+                <p>Please <a href="#" class="text-link" id="download-login-link">login</a> or <a href="#" class="text-link signup-trigger">sign up</a> to download EzClippin</p>
+            </div>
+            
+            <div class="download-grid" id="download-grid" style="display: none;">
+                <div class="download-card">
+                    <div class="download-icon">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="80" height="80" rx="12" fill="#f3f4f6"/>
+                            <path d="M30 20H50V40H60L40 60L20 40H30V20Z" fill="#6366f1"/>
+                        </svg>
+                    </div>
+                    <h3>Windows</h3>
+                    <p>Windows 10/11 (64-bit)</p>
+                    <button class="btn btn-primary btn-block download-btn" data-platform="windows">
+                        Download for Windows
+                    </button>
+                </div>
+                
+                <div class="download-card">
+                    <div class="download-icon">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="80" height="80" rx="12" fill="#f3f4f6"/>
+                            <path d="M30 20H50V40H60L40 60L20 40H30V20Z" fill="#6366f1"/>
+                        </svg>
+                    </div>
+                    <h3>macOS</h3>
+                    <p>macOS 11.0 or later</p>
+                    <button class="btn btn-primary btn-block download-btn" data-platform="mac">
+                        Download for macOS
+                    </button>
+                </div>
+                
+                <div class="download-card">
+                    <div class="download-icon">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="80" height="80" rx="12" fill="#f3f4f6"/>
+                            <path d="M30 20H50V40H60L40 60L20 40H30V20Z" fill="#6366f1"/>
+                        </svg>
+                    </div>
+                    <h3>Linux</h3>
+                    <p>Ubuntu 20.04+ or equivalent</p>
+                    <button class="btn btn-primary btn-block download-btn" data-platform="linux">
+                        Download for Linux
+                    </button>
+                </div>
+            </div>
+            
+            <div class="download-info">
+                <p class="download-help">Need help? Check out our <a href="#" class="text-link">installation guide</a> or <a href="#contact" class="text-link">contact support</a>.</p>
+            </div>
+        </div>
+    </section>
+
     <!-- CTA Section -->
     <section id="get-started" class="cta-section">
         <div class="container">
@@ -229,8 +295,79 @@
         </div>
     </section>
 
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <h2 class="section-title">Get in Touch</h2>
+            <p class="section-subtitle">Have questions or need support? We're here to help!</p>
+            
+            <div class="contact-container">
+                <div class="contact-form-wrapper">
+                    <form id="contact-form" class="contact-form">
+                        <div class="form-group">
+                            <label for="contact-name">Name</label>
+                            <input type="text" id="contact-name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-email">Email</label>
+                            <input type="email" id="contact-email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-type">Type</label>
+                            <select id="contact-type" name="type">
+                                <option value="general">General Inquiry</option>
+                                <option value="support">Technical Support</option>
+                                <option value="billing">Billing Question</option>
+                                <option value="complaint">Complaint</option>
+                                <option value="feedback">Feedback</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-subject">Subject</label>
+                            <input type="text" id="contact-subject" name="subject" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact-message">Message</label>
+                            <textarea id="contact-message" name="message" rows="6" required></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">Send Message</button>
+                        
+                        <div id="contact-form-result" class="form-result" style="display: none;"></div>
+                    </form>
+                </div>
+                
+                <div class="contact-info">
+                    <div class="contact-info-item">
+                        <h4>📧 Email</h4>
+                        <p>support@ezclippin.studio</p>
+                    </div>
+                    
+                    <div class="contact-info-item">
+                        <h4>⏰ Support Hours</h4>
+                        <p>Monday - Friday<br>9:00 AM - 6:00 PM EST</p>
+                    </div>
+                    
+                    <div class="contact-info-item">
+                        <h4>⚡ Response Time</h4>
+                        <p>Within 24 hours</p>
+                    </div>
+                    
+                    <div class="contact-info-item">
+                        <h4>🚨 Urgent Issues</h4>
+                        <p>urgent@ezclippin.studio</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
-    <footer id="contact" class="footer">
+    <footer class="footer">
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
@@ -260,6 +397,7 @@
                         <li><a href="#features">Features</a></li>
                         <li><a href="#pricing">Pricing</a></li>
                         <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#download">Download</a></li>
                     </ul>
                 </div>
                 
@@ -275,8 +413,8 @@
                 <div class="footer-section">
                     <h4>Support</h4>
                     <ul class="footer-links">
+                        <li><a href="#contact">Contact Us</a></li>
                         <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Contact Us</a></li>
                         <li><a href="#">Terms of Service</a></li>
                         <li><a href="#">Privacy Policy</a></li>
                     </ul>
@@ -392,6 +530,7 @@
                     </div>
                 </form>
             </div>
+        </div>
         </div>
     </div>
 
