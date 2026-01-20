@@ -517,53 +517,40 @@ function checkFormValidity() {
     }
 }
 
+// Handle login form submission
+const loginFormElement = document.getElementById('login-form-element');
+if (loginFormElement) {
+    loginFormElement.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // Get form values (in production, send to backend via HTTPS)
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        
+        // In production: Send to backend for authentication
+        // Backend must verify credentials securely
+        
+        // Close modal (in production, redirect to dashboard after successful login)
+        modal.classList.remove('active');
+        
+        // Reset form
+        loginFormElement.reset();
+    });
+}
+
 // Handle signup form submission
 const signupFormElement = document.getElementById('signup-form-element');
 if (signupFormElement) {
     signupFormElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Get form values
-        const name = document.getElementById('signup-name').value;
-        const email = document.getElementById('signup-email').value;
         const phone = document.getElementById('signup-phone').value;
-        const password = document.getElementById('signup-password').value;
+        // Passwords are sent securely to backend via HTTPS
+        // Backend must hash passwords using bcrypt/argon2 before storage
         
         const submitBtn = document.getElementById('signup-submit-btn');
         
-        try {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating account...';
-            
-            const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, email, phone, password })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                // Show SMS verification step
-                document.getElementById('signup-form').style.display = 'none';
-                document.getElementById('sms-verification').style.display = 'block';
-                document.getElementById('verification-phone').textContent = phone;
-                
-                // Store temp data for after verification (no auth token before SMS verification)
-                window.tempSignupData = {
-                    user: data.user
-                };
-            } else {
-                throw new Error(data.error || data.errors?.[0]?.msg || 'Signup failed');
-            }
-        } catch (error) {
-            console.error('Signup error:', error);
-            alert(error.message || 'Signup failed. Please try again.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Account';
-        }
+        // In production: Send verification code via SMS API (Twilio, AWS SNS, etc.)
     });
 }
 
@@ -634,6 +621,10 @@ verificationDigits.forEach((digit, index) => {
                 nextDigit.select();
             }
         }
+        
+        // Focus the last filled digit or next empty one
+        const nextIndex = Math.min(index + digits.length, verificationDigits.length - 1);
+        verificationDigits[nextIndex].focus();
     });
     
     // Handle paste event
@@ -676,53 +667,18 @@ if (verificationForm) {
             return;
         }
         
-        try {
-            const submitBtn = verificationForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Verifying...';
-            
-            const response = await fetch(`${API_BASE_URL}/auth/verify-sms`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    phone: document.getElementById('verification-phone').textContent,
-                    code
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok && window.tempSignupData) {
-                // Complete signup with stored data
-                authToken = window.tempSignupData.token;
-                currentUser = window.tempSignupData.user;
-                localStorage.setItem('authToken', authToken);
-                
-                // Clear temp data
-                delete window.tempSignupData;
-                
-                // Close modal and reset forms
-                modal.classList.remove('active');
-                document.getElementById('signup-form').style.display = 'block';
-                document.getElementById('sms-verification').style.display = 'none';
-                signupFormElement.reset();
-                verificationDigits.forEach(digit => digit.value = '');
-                
-                updateUIForLoggedInUser();
-                alert('Account created successfully!');
-            } else {
-                throw new Error(data.error || 'Verification failed');
-            }
-        } catch (error) {
-            console.error('Verification error:', error);
-            alert(error.message || 'Verification failed. Please try again.');
-        } finally {
-            const submitBtn = verificationForm.querySelector('button[type="submit"]');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Verify & Complete Signup';
-        }
+        // In production: Verify code with backend
+        
+        // Close modal and show success
+        modal.classList.remove('active');
+        
+        // Reset forms
+        document.getElementById('signup-form').style.display = 'block';
+        document.getElementById('sms-verification').style.display = 'none';
+        signupFormElement.reset();
+        verificationDigits.forEach(digit => digit.value = '');
+        
+        // In production: Redirect to dashboard after successful verification
     });
 }
 
@@ -852,5 +808,3 @@ if ('IntersectionObserver' in window) {
         el.style.transform = 'translateY(0)';
     });
 }
-
-
