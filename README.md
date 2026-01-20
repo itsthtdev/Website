@@ -1,2 +1,113 @@
-# Website
-Website for autoclipper
+# EzClippin.studio Website
+
+Official website for EzClippin - Automatic Stream Clipper
+
+## 🚀 Live Site
+
+The website is live at: **https://EzClippin.studio**
+
+## 📋 About
+
+EzClippin is an AI-powered automatic clip generation platform for streamers and content creators. The website features:
+
+- Modern, responsive design
+- Interactive signup/login modals
+- Feature showcase
+- Pricing plans
+- How It Works section
+- Mobile-friendly navigation
+
+## 🛠️ GitHub Pages Setup
+
+This website is hosted on GitHub Pages with a custom domain. Here's how it's configured:
+
+### Custom Domain Setup
+
+1. The `CNAME` file in the root directory contains: `EzClippin.studio`
+2. In your GitHub repository settings:
+   - Go to **Settings** → **Pages**
+   - Under "Custom domain", enter: `EzClippin.studio`
+   - Check "Enforce HTTPS"
+
+### DNS Configuration
+
+Configure your DNS provider (where you registered EzClippin.studio) with these records:
+
+**For Apex Domain (EzClippin.studio):**
+```
+Type: A
+Name: @
+Value: 185.199.108.153
+Value: 185.199.109.153
+Value: 185.199.110.153
+Value: 185.199.111.153
+```
+
+**For www Subdomain (www.EzClippin.studio):**
+```
+Type: CNAME
+Name: www
+Value: itsthtdev.github.io
+```
+
+**Note:** DNS propagation can take up to 48 hours, but usually completes within a few hours.
+
+### Verify Setup
+
+After DNS propagation:
+1. Visit https://EzClippin.studio
+2. Verify the SSL certificate is active (🔒 in browser)
+3. Test that www.EzClippin.studio redirects properly
+
+## 💻 Local Development
+
+To run the website locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/itsthtdev/Website.git
+cd Website
+
+# Start a local server (Python 3)
+python3 -m http.server 8080
+
+# Or use Node.js
+npx http-server -p 8080
+
+# Or use PHP
+php -S localhost:8080
+```
+
+Then visit: http://localhost:8080
+
+## 📁 File Structure
+
+```
+├── index.html      # Main HTML file
+├── styles.css      # All styles and responsive design
+├── script.js       # Interactive features and animations
+├── CNAME          # Custom domain configuration
+└── README.md      # This file
+```
+
+## ✨ Features
+
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Authentication Modals**: Login and signup forms with validation
+- **Password Strength Checker**: Real-time password validation
+- **SMS Verification UI**: 6-digit verification code input
+- **Smooth Animations**: Scroll animations and transitions
+- **Mobile Menu**: Hamburger menu for mobile devices
+- **Animated Counters**: Hero statistics with count-up animation
+
+## 🔒 Security Notes
+
+- All forms include client-side validation
+- Password requirements are enforced
+- Phone number validation for SMS verification
+- Email validation patterns
+- Ready for backend integration with HTTPS endpoints
+
+## 📝 License
+
+© 2026 EzClippin.studio. All rights reserved.

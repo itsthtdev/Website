@@ -1,3 +1,227 @@
+// API Configuration
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:3000/api' 
+  : '/api';
+
+// Authentication state
+let authToken = localStorage.getItem('authToken');
+let currentUser = null;
+
+// Initialize Stripe (will be loaded from server)
+let stripe = null;
+
+// Initialize app
+document.addEventListener('DOMContentLoaded', async () => {
+  await initializeAuth();
+  await initializeStripe();
+  checkAuthState();
+});
+
+// Initialize authentication state
+async function initializeAuth() {
+  if (authToken) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (response.ok) {
+        currentUser = await response.json();
+        updateUIForLoggedInUser();
+      } else {
+        // Token is invalid, clear it
+        localStorage.removeItem('authToken');
+        authToken = null;
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+    }
+  }
+}
+
+// Initialize Stripe
+async function initializeStripe() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/stripe/config`);
+    const { publishableKey } = await response.json();
+    stripe = Stripe(publishableKey);
+  } catch (error) {
+    console.error('Stripe initialization error:', error);
+  }
+}
+
+// Check authentication state and update UI
+function checkAuthState() {
+  const loggedOutNav = document.getElementById('nav-cta-logged-out');
+  const loggedInNav = document.getElementById('nav-cta-logged-in');
+  const downloadNotice = document.getElementById('download-login-notice');
+  const downloadGrid = document.getElementById('download-grid');
+  
+  if (currentUser) {
+    if (loggedOutNav) loggedOutNav.style.display = 'none';
+    if (loggedInNav) loggedInNav.style.display = 'flex';
+    if (downloadNotice) downloadNotice.style.display = 'none';
+    if (downloadGrid) downloadGrid.style.display = 'grid';
+  } else {
+    if (loggedOutNav) loggedOutNav.style.display = 'flex';
+    if (loggedInNav) loggedInNav.style.display = 'none';
+    if (downloadNotice) downloadNotice.style.display = 'block';
+    if (downloadGrid) downloadGrid.style.display = 'none';
+  }
+}
+
+// Update UI for logged in user
+function updateUIForLoggedInUser() {
+  checkAuthState();
+}
+
+// Logout functionality
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    localStorage.removeItem('authToken');
+    authToken = null;
+    currentUser = null;
+    checkAuthState();
+    window.location.reload();
+  });
+}
+
+// Download login link
+const downloadLoginLink = document.getElementById('download-login-link');
+if (downloadLoginLink) {
+  downloadLoginLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    const modal = document.getElementById('auth-modal');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    
+    if (modal && loginForm && signupForm) {
+      modal.classList.add('active');
+      signupForm.style.display = 'none';
+      loginForm.style.display = 'block';
+    }
+  });
+}
+
+// Download buttons
+document.querySelectorAll('.download-btn').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    const platform = btn.dataset.platform;
+    if (!authToken) {
+      alert('Please login to download');
+      return;
+    }
+    
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Generating download link...';
+      
+      const response = await fetch(`${API_BASE_URL}/download/${platform}`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Open download in new window
+        window.open(data.downloadUrl, '_blank');
+        btn.textContent = '✓ Download Started';
+        
+        // Track download
+        await fetch(`${API_BASE_URL}/download/track`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            platform,
+            version: '1.0.0',
+            success: true
+          })
+        });
+        
+        setTimeout(() => {
+          btn.textContent = `Download for ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
+          btn.disabled = false;
+        }, 3000);
+      } else {
+        throw new Error(data.error || 'Download failed');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to generate download link. Please try again.');
+      btn.textContent = `Download for ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
+      btn.disabled = false;
+    }
+  });
+});
+
+// Contact form submission
+const contactForm = document.getElementById('contact-form');
+if (contactForm) {
+  contactForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+      name: document.getElementById('contact-name').value,
+      email: document.getElementById('contact-email').value,
+      type: document.getElementById('contact-type').value,
+      subject: document.getElementById('contact-subject').value,
+      message: document.getElementById('contact-message').value,
+    };
+    
+    const submitBtn = contactForm.querySelector('button[type="submit"]');
+    const resultDiv = document.getElementById('contact-form-result');
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      
+      const endpoint = formData.type === 'complaint' 
+        ? `${API_BASE_URL}/contact/complaint` 
+        : `${API_BASE_URL}/contact/submit`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        resultDiv.textContent = data.message;
+        resultDiv.className = 'form-result success';
+        resultDiv.style.display = 'block';
+        contactForm.reset();
+      } else {
+        throw new Error(data.error || 'Submission failed');
+      }
+    } catch (error) {
+      console.error('Contact form error:', error);
+      resultDiv.textContent = 'Failed to send message. Please try again.';
+      resultDiv.className = 'form-result error';
+      resultDiv.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Message';
+      
+      setTimeout(() => {
+        resultDiv.style.display = 'none';
+      }, 5000);
+    }
+  });
+}
+
 // Smooth scroll for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -46,6 +270,54 @@ const signupBtn = document.getElementById('signup-btn');
 const showSignupLink = document.getElementById('show-signup');
 const showLoginLink = document.getElementById('show-login');
 const signupTriggers = document.querySelectorAll('.signup-trigger');
+
+// Handle login form submission
+if (loginForm) {
+  const form = loginForm.querySelector('form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    try {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Logging in...';
+      
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem('authToken', authToken);
+        
+        modal.classList.remove('active');
+        form.reset();
+        updateUIForLoggedInUser();
+        
+        // Show success message
+        alert('Login successful!');
+      } else {
+        throw new Error(data.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert(error.message || 'Login failed. Please check your credentials.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Login';
+    }
+  });
+}
 
 // Open modal with signup form
 if (signupBtn) {
@@ -269,17 +541,14 @@ if (loginFormElement) {
 // Handle signup form submission
 const signupFormElement = document.getElementById('signup-form-element');
 if (signupFormElement) {
-    signupFormElement.addEventListener('submit', (e) => {
+    signupFormElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const phone = document.getElementById('signup-phone').value;
         // Passwords are sent securely to backend via HTTPS
         // Backend must hash passwords using bcrypt/argon2 before storage
         
-        // Show SMS verification step
-        document.getElementById('signup-form').style.display = 'none';
-        document.getElementById('sms-verification').style.display = 'block';
-        document.getElementById('verification-phone').textContent = phone;
+        const submitBtn = document.getElementById('signup-submit-btn');
         
         // In production: Send verification code via SMS API (Twilio, AWS SNS, etc.)
     });
@@ -352,6 +621,10 @@ verificationDigits.forEach((digit, index) => {
                 nextDigit.select();
             }
         }
+        
+        // Focus the last filled digit or next empty one
+        const nextIndex = Math.min(index + digits.length, verificationDigits.length - 1);
+        verificationDigits[nextIndex].focus();
     });
     
     // Handle paste event
@@ -374,7 +647,7 @@ verificationDigits.forEach((digit, index) => {
 // Handle verification form submission
 const verificationForm = document.getElementById('verification-form');
 if (verificationForm) {
-    verificationForm.addEventListener('submit', (e) => {
+    verificationForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         // Collect verification code
