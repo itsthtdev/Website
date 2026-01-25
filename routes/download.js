@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken } = require('./auth');
+const dataStore = require('../utils/dataStore');
 
 // Download configuration based on platform
 const DOWNLOAD_CONFIG = {
@@ -60,6 +61,14 @@ router.get('/:platform', verifyToken, (req, res) => {
       validPlatforms: Object.keys(DOWNLOAD_CONFIG)
     });
   }
+
+  // Track download for admin analytics
+  dataStore.trackDownload({
+    userId: req.userId,
+    platform,
+    filename: config.filename,
+    name: config.name
+  });
 
   // In production, log download for analytics
   console.log(`Download requested: ${config.name} by user ${req.userId}`);
