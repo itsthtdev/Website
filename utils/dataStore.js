@@ -15,8 +15,10 @@ class DataStore {
     // Subscription events
     this.subscriptionEvents = [];
     
-    // Initialize with some example data for testing
-    this.initializeTestData();
+    // Initialize with some example data for testing (development only)
+    if (process.env.NODE_ENV !== 'production') {
+      this.initializeTestData();
+    }
   }
 
   initializeTestData() {
@@ -38,7 +40,7 @@ class DataStore {
   // Visit tracking
   trackVisit(visitData) {
     const visit = {
-      id: `visit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `visit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       timestamp: new Date().toISOString(),
       ...visitData
     };

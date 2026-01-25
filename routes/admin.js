@@ -37,17 +37,8 @@ router.post('/login', [
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // For demo purposes, accept "admin123" as password or verify with bcrypt
-    let isValid = false;
-    if (password === 'admin123') {
-      isValid = true;
-    } else {
-      try {
-        isValid = await bcrypt.compare(password, admin.password);
-      } catch (e) {
-        isValid = false;
-      }
-    }
+    // Verify password with bcrypt
+    const isValid = await bcrypt.compare(password, admin.password);
 
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -199,6 +190,7 @@ router.patch('/users/:userId/subscription', verifyAdminToken, [
     }
 
     const user = users.get(userEmail);
+    const previousStatus = user.subscription; // Store before updating
     user.subscription = subscription;
     users.set(userEmail, user);
 
@@ -206,7 +198,7 @@ router.patch('/users/:userId/subscription', verifyAdminToken, [
     dataStore.trackSubscriptionEvent({
       userId,
       type: 'admin_update',
-      previousStatus: user.subscription,
+      previousStatus,
       newStatus: subscription,
       updatedBy: req.adminEmail
     });

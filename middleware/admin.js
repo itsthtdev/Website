@@ -5,7 +5,7 @@ const ADMIN_USERS = new Map([
   ['admin@ezclippin.studio', {
     id: 'admin-001',
     email: 'admin@ezclippin.studio',
-    password: '$2a$10$YourHashedPasswordHere', // Use bcrypt to hash: "admin123"
+    password: '$2a$10$eC7Ah5Xj1VieqDE2jDLVIOqwiFPelK.W2DtYuXqI6SlXg9KyDubtW', // bcrypt hash of "admin123"
     role: 'admin',
     name: 'Admin User'
   }]

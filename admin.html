@@ -309,10 +309,10 @@
 
         <div class="section">
             <div class="tab-container">
-                <button class="tab active" onclick="switchTab('users')">Users</button>
-                <button class="tab" onclick="switchTab('subscriptions')">Subscriptions</button>
-                <button class="tab" onclick="switchTab('analytics')">Analytics</button>
-                <button class="tab" onclick="switchTab('contacts')">Contact Forms</button>
+                <button class="tab active" onclick="switchTab('users', event)">Users</button>
+                <button class="tab" onclick="switchTab('subscriptions', event)">Subscriptions</button>
+                <button class="tab" onclick="switchTab('analytics', event)">Analytics</button>
+                <button class="tab" onclick="switchTab('contacts', event)">Contact Forms</button>
             </div>
 
             <div class="tab-content active" id="users-tab">
@@ -560,12 +560,21 @@
             }
         }
 
-        function switchTab(tabName) {
+        function switchTab(tabName, event) {
             // Update tab buttons
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // Fallback if called without event
+                document.querySelectorAll('.tab').forEach(tab => {
+                    if (tab.textContent.toLowerCase().includes(tabName)) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
 
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => {
