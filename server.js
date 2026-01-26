@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const dataStore = require('./utils/dataStore');
 require('dotenv').config();
 
 const app = express();
@@ -45,6 +46,20 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Analytics middleware to track visits
+app.use((req, res, next) => {
+  // Track non-API requests (website visits)
+  if (!req.path.startsWith('/api/') && !req.path.includes('.')) {
+    dataStore.trackVisit({
+      ip: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      path: req.path,
+      referrer: req.get('referrer') || 'direct'
+    });
+  }
+  next();
+});
+
 // Serve static files
 app.use(express.static('.', {
   index: 'index.html'
@@ -55,11 +70,13 @@ const authRoutes = require('./routes/auth');
 const downloadRoutes = require('./routes/download');
 // stripeRoutes already loaded above for webhook
 const contactRoutes = require('./routes/contact');
+const adminRoutes = require('./routes/admin');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/download', downloadRoutes);
 app.use('/api/stripe', stripeRoutes); // Other Stripe routes
 app.use('/api/contact', contactRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
