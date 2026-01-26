@@ -123,7 +123,10 @@ GET /api/admin/subscription-events
 
 3. **HTTPS Only**: Always use HTTPS in production
 
-4. **Strong JWT Secret**: Use a strong, random JWT_SECRET in production
+4. **Strong, Mandatory JWT Secret**:
+   - Always set a strong, random `JWT_SECRET` via environment variables (in all environments).
+   - Do **not** rely on any hardcoded or default JWT secret for signing tokens.
+   - Configure the server to **fail fast on startup** if `JWT_SECRET` is missing or empty.
 
 5. **Database Migration**: Replace in-memory storage with a proper database
 
