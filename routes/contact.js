@@ -7,12 +7,31 @@ const crypto = require('crypto');
 const dataStore = require('../utils/dataStore');
 
 // Encryption configuration for sensitive message data
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32); // Must be 32 bytes for AES-256
+let ENCRYPTION_KEY;
+if (process.env.ENCRYPTION_KEY) {
+  // Use provided key (must be 64 hex characters = 32 bytes)
+  ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
+  if (ENCRYPTION_KEY.length !== 32) {
+    console.error('FATAL ERROR: ENCRYPTION_KEY must be 64 hex characters (32 bytes).');
+    console.error('Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    process.exit(1);
+  }
+} else if (process.env.NODE_ENV === 'production') {
+  console.error('FATAL ERROR: ENCRYPTION_KEY environment variable is not set in production.');
+  console.error('Contact messages will not be encrypted without this key.');
+  console.error('Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+  process.exit(1);
+} else {
+  // Development only: use random key
+  ENCRYPTION_KEY = crypto.randomBytes(32);
+  console.warn('WARNING: ENCRYPTION_KEY not set. Using random key - encrypted data will be lost on server restart.');
+}
+
 const ALGORITHM = 'aes-256-gcm';
 
 // Warn if using random encryption key (data won't persist across restarts)
-if (!process.env.ENCRYPTION_KEY) {
-  console.warn('WARNING: ENCRYPTION_KEY not set. Using random key - encrypted data will be lost on server restart.');
+if (!process.env.ENCRYPTION_KEY && process.env.NODE_ENV !== 'production') {
+  console.warn('WARNING: Using temporary encryption key for development. Set ENCRYPTION_KEY in production.');
 }
 
 // Helper function to encrypt sensitive data

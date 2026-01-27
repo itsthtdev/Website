@@ -24,6 +24,9 @@ class DataStore {
     // Subscription events
     this.subscriptionEvents = [];
     
+    // Cleanup timer reference
+    this.cleanupTimer = null;
+    
     // Initialize with some example data for testing (development only)
     if (process.env.NODE_ENV !== 'production') {
       this.initializeTestData();
@@ -36,14 +39,34 @@ class DataStore {
   // Automatic cleanup of old data
   startDataCleanup() {
     // Run cleanup every hour
-    setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       this.cleanupOldData();
     }, 60 * 60 * 1000);
+    
+    // Allow Node.js to exit gracefully even if timer is active
+    if (this.cleanupTimer.unref) {
+      this.cleanupTimer.unref();
+    }
+  }
+  
+  // Stop automatic cleanup (for graceful shutdown)
+  stopDataCleanup() {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
   }
   
   // Remove data older than retention period and enforce max limits
   cleanupOldData() {
     const cutoffDate = new Date(Date.now() - DATA_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    
+    const beforeCounts = {
+      visits: this.visits.length,
+      contacts: this.contactSubmissions.length,
+      downloads: this.downloads.length,
+      events: this.subscriptionEvents.length
+    };
     
     // Clean up old visits
     this.visits = this.visits.filter(v => new Date(v.timestamp) >= cutoffDate);
@@ -61,7 +84,21 @@ class DataStore {
     this.subscriptionEvents = this.subscriptionEvents.filter(e => new Date(e.timestamp) >= cutoffDate);
     this.enforceSizeLimit('subscriptionEvents', MAX_SUBSCRIPTION_EVENTS);
     
-    console.log(`Data cleanup completed. Retained data: visits=${this.visits.length}, contacts=${this.contactSubmissions.length}, downloads=${this.downloads.length}, events=${this.subscriptionEvents.length}`);
+    // Only log if something was cleaned up
+    const afterCounts = {
+      visits: this.visits.length,
+      contacts: this.contactSubmissions.length,
+      downloads: this.downloads.length,
+      events: this.subscriptionEvents.length
+    };
+    
+    const totalRemoved = Object.keys(beforeCounts).reduce((sum, key) => 
+      sum + (beforeCounts[key] - afterCounts[key]), 0
+    );
+    
+    if (totalRemoved > 0 && process.env.NODE_ENV !== 'production') {
+      console.log(`Data cleanup: removed ${totalRemoved} items. Current: visits=${afterCounts.visits}, contacts=${afterCounts.contacts}, downloads=${afterCounts.downloads}, events=${afterCounts.events}`);
+    }
   }
   
   // FIFO eviction when array exceeds max size
@@ -69,7 +106,9 @@ class DataStore {
     if (this[arrayName].length > maxSize) {
       const excess = this[arrayName].length - maxSize;
       this[arrayName] = this[arrayName].slice(excess); // Remove oldest items (FIFO)
-      console.log(`Evicted ${excess} old items from ${arrayName} (FIFO)`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Evicted ${excess} old items from ${arrayName} (FIFO)`);
+      }
     }
   }
 
