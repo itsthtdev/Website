@@ -304,8 +304,8 @@ if (loginForm) {
         form.reset();
         updateUIForLoggedInUser();
         
-        // Show success message
-        alert('Login successful!');
+        // Redirect to dashboard
+        window.location.href = '/dashboard.html';
       } else {
         throw new Error(data.error || 'Login failed');
       }
@@ -544,13 +544,64 @@ if (signupFormElement) {
     signupFormElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        const name = document.getElementById('signup-name').value;
+        const email = document.getElementById('signup-email').value;
         const phone = document.getElementById('signup-phone').value;
-        // Passwords are sent securely to backend via HTTPS
-        // Backend must hash passwords using bcrypt/argon2 before storage
+        const password = document.getElementById('signup-password').value;
+        const confirm = document.getElementById('signup-confirm').value;
+        
+        // Validate passwords match
+        if (password !== confirm) {
+            alert('Passwords do not match');
+            return;
+        }
         
         const submitBtn = document.getElementById('signup-submit-btn');
         
-        // In production: Send verification code via SMS API (Twilio, AWS SNS, etc.)
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating account...';
+            
+            const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, phone, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Show SMS verification form
+                signupForm.style.display = 'none';
+                const smsVerification = document.getElementById('sms-verification');
+                smsVerification.style.display = 'block';
+                
+                // Update phone number display
+                const verificationPhone = document.getElementById('verification-phone');
+                if (verificationPhone) {
+                    verificationPhone.textContent = data.phone || phone;
+                }
+                
+                // Store email for verification
+                smsVerification.dataset.email = email;
+                
+                // Show dev code in development mode
+                if (data.devCode) {
+                    console.log('DEVELOPMENT MODE - Verification code:', data.devCode);
+                    alert(`DEVELOPMENT MODE\nYour verification code is: ${data.devCode}`);
+                }
+            } else {
+                throw new Error(data.error || 'Signup failed');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            alert(error.message || 'Failed to create account. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+        }
     });
 }
 
@@ -667,41 +718,129 @@ if (verificationForm) {
             return;
         }
         
-        // In production: Verify code with backend
+        const smsVerification = document.getElementById('sms-verification');
+        const email = smsVerification.dataset.email;
         
-        // Close modal and show success
-        modal.classList.remove('active');
+        if (!email) {
+            alert('Session expired. Please sign up again.');
+            closeModal();
+            return;
+        }
         
-        // Reset forms
-        document.getElementById('signup-form').style.display = 'block';
-        document.getElementById('sms-verification').style.display = 'none';
-        signupFormElement.reset();
-        verificationDigits.forEach(digit => digit.value = '');
+        const submitBtn = verificationForm.querySelector('button[type="submit"]');
         
-        // In production: Redirect to dashboard after successful verification
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Verifying...';
+            
+            const response = await fetch(`${API_BASE_URL}/auth/verify-sms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, code })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Store auth token
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('authToken', authToken);
+                
+                // Close modal and show success
+                modal.classList.remove('active');
+                
+                // Reset forms
+                signupForm.style.display = 'block';
+                smsVerification.style.display = 'none';
+                signupFormElement.reset();
+                verificationDigits.forEach(digit => digit.value = '');
+                
+                updateUIForLoggedInUser();
+                
+                // Redirect to dashboard
+                window.location.href = '/dashboard.html';
+            } else {
+                throw new Error(data.error || 'Verification failed');
+            }
+        } catch (error) {
+            console.error('Verification error:', error);
+            const errorMsg = document.getElementById('verification-error-message');
+            if (errorMsg) {
+                errorMsg.style.color = '#ef4444';
+                errorMsg.textContent = error.message || 'Invalid verification code';
+                setTimeout(() => {
+                    errorMsg.textContent = '';
+                }, 3000);
+            }
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Verify & Complete Signup';
+        }
     });
 }
 
 // Handle resend code
 const resendCodeBtn = document.getElementById('resend-code');
 if (resendCodeBtn) {
-    resendCodeBtn.addEventListener('click', (e) => {
+    resendCodeBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        // In production: Resend SMS code
         
-        // Remove any existing success messages
-        const existingMsg = resendCodeBtn.parentElement.querySelector('.success-message');
-        if (existingMsg) {
-            existingMsg.remove();
+        const smsVerification = document.getElementById('sms-verification');
+        const email = smsVerification.dataset.email;
+        
+        if (!email) {
+            alert('Session expired. Please sign up again.');
+            closeModal();
+            return;
         }
         
-        // Show success message
-        const successMsg = document.createElement('small');
-        successMsg.style.color = '#10b981';
-        successMsg.textContent = 'Code resent successfully!';
-        successMsg.className = 'success-message';
-        resendCodeBtn.parentElement.appendChild(successMsg);
-        setTimeout(() => successMsg.remove(), 3000);
+        try {
+            resendCodeBtn.disabled = true;
+            resendCodeBtn.textContent = 'Sending...';
+            
+            const response = await fetch(`${API_BASE_URL}/auth/resend-sms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Remove any existing success messages
+                const existingMsg = resendCodeBtn.parentElement.querySelector('.success-message');
+                if (existingMsg) {
+                    existingMsg.remove();
+                }
+                
+                // Show success message
+                const successMsg = document.createElement('small');
+                successMsg.style.color = '#10b981';
+                successMsg.textContent = 'Code resent successfully!';
+                successMsg.className = 'success-message';
+                resendCodeBtn.parentElement.appendChild(successMsg);
+                setTimeout(() => successMsg.remove(), 3000);
+                
+                // Show dev code in development mode
+                if (data.devCode) {
+                    console.log('DEVELOPMENT MODE - New verification code:', data.devCode);
+                    alert(`DEVELOPMENT MODE\nYour new verification code is: ${data.devCode}`);
+                }
+            } else {
+                throw new Error(data.error || 'Failed to resend code');
+            }
+        } catch (error) {
+            console.error('Resend code error:', error);
+            alert(error.message || 'Failed to resend code. Please try again.');
+        } finally {
+            resendCodeBtn.disabled = false;
+            resendCodeBtn.textContent = "Didn't receive code? Resend";
+        }
     });
 }
 

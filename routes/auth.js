@@ -3,9 +3,13 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
+const smsService = require('../utils/smsService');
 
 // In-memory user storage (in production, use a database)
 const users = new Map();
+
+// In-memory storage for pending signups (awaiting SMS verification)
+const pendingSignups = new Map();
 
 // Validation middleware
 const validateSignup = [
@@ -51,31 +55,31 @@ router.post('/signup', validateSignup, async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Store user (in production, save to database)
-    const user = {
-      id: crypto.randomUUID(),
+    // Store signup data temporarily (pending SMS verification)
+    pendingSignups.set(email, {
       name,
       email,
       phone,
       password: hashedPassword,
-      subscription: 'free',
-      verified: false,
       createdAt: new Date().toISOString()
-    };
-
-    users.set(email, user);
-
-    // Generate token
-    const token = generateToken(user.id);
-
-    // Return user data without password
-    const { password: _, ...userWithoutPassword } = user;
-
-    res.status(201).json({
-      message: 'User created successfully',
-      user: userWithoutPassword,
-      token
     });
+
+    // Send SMS verification code
+    try {
+      const result = await smsService.sendVerificationCode(phone, email);
+      
+      res.status(200).json({
+        message: 'Verification code sent to your phone',
+        email,
+        phone: phone.replace(/(\d{3})\d{3}(\d{4})/, '$1***$2'), // Mask phone number
+        ...(process.env.NODE_ENV === 'development' && result.devCode ? { devCode: result.devCode } : {})
+      });
+    } catch (error) {
+      // Clean up pending signup if SMS fails
+      pendingSignups.delete(email);
+      console.error('SMS sending error:', error);
+      res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
+    }
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ error: 'Failed to create user' });
@@ -122,13 +126,98 @@ router.post('/login', validateLogin, async (req, res) => {
 });
 
 // Verify SMS code endpoint
-router.post('/verify-sms', (req, res) => {
-  // SMS verification is not implemented securely yet.
-  // To avoid insecure phone verification bypass, this endpoint is disabled
-  // until proper SMS code generation, delivery, and validation is in place.
-  return res.status(501).json({
-    error: 'SMS verification is not implemented. Phone verification is currently disabled.'
-  });
+router.post('/verify-sms', [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('code').isLength({ min: 6, max: 6 }).isNumeric().withMessage('Valid 6-digit code is required'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, code } = req.body;
+
+    // Get pending signup
+    const pendingSignup = pendingSignups.get(email);
+    if (!pendingSignup) {
+      return res.status(400).json({ error: 'No pending signup found. Please sign up first.' });
+    }
+
+    // Verify the code
+    const verificationResult = smsService.verifyCode(email, code);
+    
+    if (!verificationResult.success) {
+      return res.status(400).json({ error: verificationResult.error });
+    }
+
+    // Create the user account
+    const user = {
+      id: crypto.randomUUID(),
+      name: pendingSignup.name,
+      email: pendingSignup.email,
+      phone: pendingSignup.phone,
+      password: pendingSignup.password,
+      subscription: 'free',
+      verified: true,
+      createdAt: new Date().toISOString()
+    };
+
+    users.set(email, user);
+    pendingSignups.delete(email);
+
+    // Generate token
+    const token = generateToken(user.id);
+
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.status(201).json({
+      message: 'Account created successfully',
+      user: userWithoutPassword,
+      token
+    });
+  } catch (error) {
+    console.error('SMS verification error:', error);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// Resend SMS code endpoint
+router.post('/resend-sms', [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    // Get pending signup
+    const pendingSignup = pendingSignups.get(email);
+    if (!pendingSignup) {
+      return res.status(400).json({ error: 'No pending signup found. Please sign up first.' });
+    }
+
+    // Send new verification code
+    try {
+      const result = await smsService.sendVerificationCode(pendingSignup.phone, email);
+      
+      res.status(200).json({
+        message: 'Verification code resent',
+        phone: pendingSignup.phone.replace(/(\d{3})\d{3}(\d{4})/, '$1***$2'),
+        ...(process.env.NODE_ENV === 'development' && result.devCode ? { devCode: result.devCode } : {})
+      });
+    } catch (error) {
+      console.error('SMS resend error:', error);
+      res.status(500).json({ error: 'Failed to resend verification code. Please try again.' });
+    }
+  } catch (error) {
+    console.error('Resend SMS error:', error);
+    res.status(500).json({ error: 'Failed to resend code' });
+  }
 });
 
 // Middleware to verify JWT token
