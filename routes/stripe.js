@@ -157,66 +157,94 @@ router.post('/webhook', async (req, res) => {
       case 'checkout.session.completed':
         const session = event.data.object;
         console.log('Checkout completed:', session);
+        // Store only essential fields instead of full data object
         dataStore.trackSubscriptionEvent({
           type: 'checkout_completed',
           userId: session.client_reference_id,
           sessionId: session.id,
-          data: session
+          subscriptionId: session.subscription,
+          amount: session.amount_total,
+          currency: session.currency,
+          status: session.payment_status
         });
         // Update user subscription in database
         break;
 
       case 'customer.subscription.created':
-        console.log('Subscription created:', event.data.object);
+        const subCreated = event.data.object;
+        console.log('Subscription created:', subCreated);
+        // Store only essential fields instead of full data object
         dataStore.trackSubscriptionEvent({
           type: 'subscription_created',
-          subscriptionId: event.data.object.id,
-          userId: event.data.object.metadata?.userId,
-          data: event.data.object
+          subscriptionId: subCreated.id,
+          userId: subCreated.metadata?.userId,
+          customerId: subCreated.customer,
+          status: subCreated.status,
+          currentPeriodStart: subCreated.current_period_start,
+          currentPeriodEnd: subCreated.current_period_end
         });
         // Update user subscription status
         break;
 
       case 'customer.subscription.updated':
-        console.log('Subscription updated:', event.data.object);
+        const subUpdated = event.data.object;
+        console.log('Subscription updated:', subUpdated);
+        // Store only essential fields instead of full data object
         dataStore.trackSubscriptionEvent({
           type: 'subscription_updated',
-          subscriptionId: event.data.object.id,
-          userId: event.data.object.metadata?.userId,
-          data: event.data.object
+          subscriptionId: subUpdated.id,
+          userId: subUpdated.metadata?.userId,
+          customerId: subUpdated.customer,
+          status: subUpdated.status,
+          cancelAtPeriodEnd: subUpdated.cancel_at_period_end,
+          currentPeriodEnd: subUpdated.current_period_end
         });
         // Update user subscription status
         break;
 
       case 'customer.subscription.deleted':
-        console.log('Subscription deleted:', event.data.object);
+        const subDeleted = event.data.object;
+        console.log('Subscription deleted:', subDeleted);
+        // Store only essential fields instead of full data object
         dataStore.trackSubscriptionEvent({
           type: 'subscription_deleted',
-          subscriptionId: event.data.object.id,
-          userId: event.data.object.metadata?.userId,
-          data: event.data.object
+          subscriptionId: subDeleted.id,
+          userId: subDeleted.metadata?.userId,
+          customerId: subDeleted.customer,
+          status: subDeleted.status,
+          canceledAt: subDeleted.canceled_at
         });
         // Downgrade user to free plan
         break;
 
       case 'invoice.payment_succeeded':
-        console.log('Payment succeeded:', event.data.object);
+        const invoiceSuccess = event.data.object;
+        console.log('Payment succeeded:', invoiceSuccess);
+        // Store only essential fields instead of full data object
         dataStore.trackSubscriptionEvent({
           type: 'payment_succeeded',
-          invoiceId: event.data.object.id,
-          subscriptionId: event.data.object.subscription,
-          data: event.data.object
+          invoiceId: invoiceSuccess.id,
+          subscriptionId: invoiceSuccess.subscription,
+          customerId: invoiceSuccess.customer,
+          amount: invoiceSuccess.amount_paid,
+          currency: invoiceSuccess.currency,
+          status: invoiceSuccess.status
         });
         // Send receipt email
         break;
 
       case 'invoice.payment_failed':
-        console.log('Payment failed:', event.data.object);
+        const invoiceFailed = event.data.object;
+        console.log('Payment failed:', invoiceFailed);
+        // Store only essential fields instead of full data object
         dataStore.trackSubscriptionEvent({
           type: 'payment_failed',
-          invoiceId: event.data.object.id,
-          subscriptionId: event.data.object.subscription,
-          data: event.data.object
+          invoiceId: invoiceFailed.id,
+          subscriptionId: invoiceFailed.subscription,
+          customerId: invoiceFailed.customer,
+          amount: invoiceFailed.amount_due,
+          currency: invoiceFailed.currency,
+          attemptCount: invoiceFailed.attempt_count
         });
         // Notify user of payment failure
         break;
