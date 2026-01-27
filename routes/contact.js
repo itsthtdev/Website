@@ -3,7 +3,52 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 const dataStore = require('../utils/dataStore');
+
+// Encryption configuration for sensitive message data
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || crypto.randomBytes(32); // Must be 32 bytes for AES-256
+const ALGORITHM = 'aes-256-gcm';
+
+// Warn if using random encryption key (data won't persist across restarts)
+if (!process.env.ENCRYPTION_KEY) {
+  console.warn('WARNING: ENCRYPTION_KEY not set. Using random key - encrypted data will be lost on server restart.');
+}
+
+// Helper function to encrypt sensitive data
+function encrypt(text) {
+  if (!text) return null;
+  const iv = crypto.randomBytes(16); // Initialization vector
+  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag();
+  // Return iv, authTag, and encrypted data together
+  return {
+    iv: iv.toString('hex'),
+    authTag: authTag.toString('hex'),
+    data: encrypted
+  };
+}
+
+// Helper function to decrypt sensitive data
+function decrypt(encryptedObj) {
+  if (!encryptedObj || !encryptedObj.data) return null;
+  try {
+    const decipher = crypto.createDecipheriv(
+      ALGORITHM,
+      ENCRYPTION_KEY,
+      Buffer.from(encryptedObj.iv, 'hex')
+    );
+    decipher.setAuthTag(Buffer.from(encryptedObj.authTag, 'hex'));
+    let decrypted = decipher.update(encryptedObj.data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (error) {
+    console.error('Decryption error:', error);
+    return null;
+  }
+}
 
 // Helper function to escape HTML to prevent XSS
 function escapeHtml(text) {
@@ -56,12 +101,12 @@ router.post('/submit', contactLimiter, validateContactForm, async (req, res) => 
 
     const { name, email, subject, message, type = 'general' } = req.body;
 
-    // Track contact submission for admin analytics
+    // Track contact submission for admin analytics (encrypt sensitive message content)
     dataStore.trackContactSubmission({
       name,
       email,
       subject,
-      message,
+      message: encrypt(message), // Encrypt the message content
       type,
       status: 'new'
     });
@@ -139,12 +184,12 @@ router.post('/complaint', contactLimiter, validateContactForm, async (req, res) 
 
     const { name, email, subject, message, priority = 'medium' } = req.body;
 
-    // Track complaint submission for admin analytics
+    // Track complaint submission for admin analytics (encrypt sensitive message content)
     dataStore.trackContactSubmission({
       name,
       email,
       subject,
-      message,
+      message: encrypt(message), // Encrypt the message content
       type: 'complaint',
       priority,
       status: 'new'
@@ -207,3 +252,4 @@ router.get('/info', (req, res) => {
 });
 
 module.exports = router;
+module.exports.decrypt = decrypt; // Export decrypt function for admin routes

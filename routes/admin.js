@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const { verifyAdminToken, ADMIN_USERS } = require('../middleware/admin');
 const dataStore = require('../utils/dataStore');
 const Stripe = require('stripe');
+const { decrypt } = require('./contact'); // Import decrypt function for contact messages
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
@@ -432,11 +433,17 @@ router.get('/contact-submissions', verifyAdminToken, (req, res) => {
 
     const submissions = dataStore.getContactSubmissions({ status });
     
+    // Decrypt messages for admin view
+    const decryptedSubmissions = submissions.map(submission => ({
+      ...submission,
+      message: typeof submission.message === 'object' ? decrypt(submission.message) : submission.message
+    }));
+    
     // Pagination
-    const total = submissions.length;
+    const total = decryptedSubmissions.length;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const paginatedSubmissions = submissions.slice(startIndex, endIndex);
+    const paginatedSubmissions = decryptedSubmissions.slice(startIndex, endIndex);
 
     res.json({
       submissions: paginatedSubmissions,
