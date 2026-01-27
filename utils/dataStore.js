@@ -1,6 +1,15 @@
 // In-memory data store for analytics and tracking
 // In production, replace with a proper database
 
+const crypto = require('crypto');
+
+// Configuration for data retention
+const MAX_VISITS = parseInt(process.env.MAX_VISITS) || 10000;
+const MAX_CONTACTS = parseInt(process.env.MAX_CONTACTS) || 5000;
+const MAX_DOWNLOADS = parseInt(process.env.MAX_DOWNLOADS) || 5000;
+const MAX_SUBSCRIPTION_EVENTS = parseInt(process.env.MAX_SUBSCRIPTION_EVENTS) || 5000;
+const DATA_RETENTION_DAYS = parseInt(process.env.DATA_RETENTION_DAYS) || 7;
+
 class DataStore {
   constructor() {
     // Website visits tracking
@@ -19,6 +28,49 @@ class DataStore {
     if (process.env.NODE_ENV !== 'production') {
       this.initializeTestData();
     }
+    
+    // Set up automatic data cleanup
+    this.startDataCleanup();
+  }
+  
+  // Automatic cleanup of old data
+  startDataCleanup() {
+    // Run cleanup every hour
+    setInterval(() => {
+      this.cleanupOldData();
+    }, 60 * 60 * 1000);
+  }
+  
+  // Remove data older than retention period and enforce max limits
+  cleanupOldData() {
+    const cutoffDate = new Date(Date.now() - DATA_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    
+    // Clean up old visits
+    this.visits = this.visits.filter(v => new Date(v.timestamp) >= cutoffDate);
+    this.enforceSizeLimit('visits', MAX_VISITS);
+    
+    // Clean up old contact submissions
+    this.contactSubmissions = this.contactSubmissions.filter(c => new Date(c.timestamp) >= cutoffDate);
+    this.enforceSizeLimit('contactSubmissions', MAX_CONTACTS);
+    
+    // Clean up old downloads
+    this.downloads = this.downloads.filter(d => new Date(d.timestamp) >= cutoffDate);
+    this.enforceSizeLimit('downloads', MAX_DOWNLOADS);
+    
+    // Clean up old subscription events
+    this.subscriptionEvents = this.subscriptionEvents.filter(e => new Date(e.timestamp) >= cutoffDate);
+    this.enforceSizeLimit('subscriptionEvents', MAX_SUBSCRIPTION_EVENTS);
+    
+    console.log(`Data cleanup completed. Retained data: visits=${this.visits.length}, contacts=${this.contactSubmissions.length}, downloads=${this.downloads.length}, events=${this.subscriptionEvents.length}`);
+  }
+  
+  // FIFO eviction when array exceeds max size
+  enforceSizeLimit(arrayName, maxSize) {
+    if (this[arrayName].length > maxSize) {
+      const excess = this[arrayName].length - maxSize;
+      this[arrayName] = this[arrayName].slice(excess); // Remove oldest items (FIFO)
+      console.log(`Evicted ${excess} old items from ${arrayName} (FIFO)`);
+    }
   }
 
   initializeTestData() {
@@ -27,7 +79,7 @@ class DataStore {
     for (let i = 0; i < 50; i++) {
       const visitDate = new Date(now - Math.random() * 7 * 24 * 60 * 60 * 1000);
       this.visits.push({
-        id: `visit-${i}`,
+        id: crypto.randomUUID(),
         timestamp: visitDate.toISOString(),
         ip: `192.168.1.${Math.floor(Math.random() * 255)}`,
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -40,11 +92,12 @@ class DataStore {
   // Visit tracking
   trackVisit(visitData) {
     const visit = {
-      id: `visit-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       ...visitData
     };
     this.visits.push(visit);
+    this.enforceSizeLimit('visits', MAX_VISITS);
     return visit;
   }
 
@@ -78,11 +131,12 @@ class DataStore {
   // Contact submissions
   trackContactSubmission(submission) {
     const contact = {
-      id: `contact-${Date.now()}`,
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       ...submission
     };
     this.contactSubmissions.push(contact);
+    this.enforceSizeLimit('contactSubmissions', MAX_CONTACTS);
     return contact;
   }
 
@@ -99,11 +153,12 @@ class DataStore {
   // Download tracking
   trackDownload(downloadData) {
     const download = {
-      id: `download-${Date.now()}`,
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       ...downloadData
     };
     this.downloads.push(download);
+    this.enforceSizeLimit('downloads', MAX_DOWNLOADS);
     return download;
   }
 
@@ -121,21 +176,27 @@ class DataStore {
   }
 
   getDownloadStats() {
+    // Sort downloads by timestamp descending to get most recent first
+    const sortedDownloads = [...this.downloads].sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
     return {
       total: this.downloads.length,
       byPlatform: this.groupBy(this.downloads, 'platform'),
-      recent: this.downloads.slice(0, 10)
+      recent: sortedDownloads.slice(0, 10) // Get 10 most recent downloads
     };
   }
 
   // Subscription events
   trackSubscriptionEvent(event) {
     const subEvent = {
-      id: `sub-event-${Date.now()}`,
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       ...event
     };
     this.subscriptionEvents.push(subEvent);
+    this.enforceSizeLimit('subscriptionEvents', MAX_SUBSCRIPTION_EVENTS);
     return subEvent;
   }
 
@@ -173,13 +234,18 @@ class DataStore {
 
   // Get overall stats
   getOverallStats() {
+    // Sort downloads by timestamp descending to get most recent first
+    const sortedDownloads = [...this.downloads].sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
     return {
       totalVisits: this.visits.length,
       totalContactSubmissions: this.contactSubmissions.length,
       totalDownloads: this.downloads.length,
       totalSubscriptionEvents: this.subscriptionEvents.length,
       recentVisits: this.getVisitStats(7),
-      recentDownloads: this.downloads.slice(0, 5)
+      recentDownloads: sortedDownloads.slice(0, 5) // Get 5 most recent downloads
     };
   }
 }
