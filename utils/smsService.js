@@ -1,4 +1,5 @@
 const twilio = require('twilio');
+const crypto = require('crypto');
 
 // In-memory storage for verification codes (in production, use Redis or database)
 const verificationCodes = new Map();
@@ -17,9 +18,9 @@ function initializeTwilio() {
   return false;
 }
 
-// Generate a 6-digit verification code
+// Generate a 6-digit verification code using cryptographically secure random
 function generateVerificationCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 // Send verification code via SMS
@@ -82,20 +83,20 @@ function verifyCode(email, code) {
     return { success: false, error: 'Verification code expired' };
   }
 
-  // Check attempts
+  // Check attempts (allow up to 5 attempts)
   if (stored.attempts >= 5) {
     verificationCodes.delete(email);
     return { success: false, error: 'Too many attempts. Please request a new code.' };
   }
-
-  // Increment attempts
-  stored.attempts++;
 
   // Check code match
   if (stored.code === code) {
     verificationCodes.delete(email);
     return { success: true, message: 'Phone number verified successfully' };
   }
+
+  // Increment attempts only if code was incorrect
+  stored.attempts++;
 
   return { success: false, error: 'Invalid verification code' };
 }

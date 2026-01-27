@@ -11,6 +11,9 @@ const users = new Map();
 // In-memory storage for pending signups (awaiting SMS verification)
 const pendingSignups = new Map();
 
+// In-memory storage for resend rate limiting
+const resendAttempts = new Map();
+
 // Validation middleware
 const validateSignup = [
   body('name').trim().notEmpty().withMessage('Name is required'),
@@ -52,6 +55,11 @@ router.post('/signup', validateSignup, async (req, res) => {
       return res.status(409).json({ error: 'User already exists' });
     }
 
+    // Check if there's already a pending signup for this email
+    if (pendingSignups.has(email)) {
+      return res.status(400).json({ error: 'A verification code has already been sent to this email. Please check your phone or request a new code.' });
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -61,7 +69,8 @@ router.post('/signup', validateSignup, async (req, res) => {
       email,
       phone,
       password: hashedPassword,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000) // Expire after 15 minutes
     });
 
     // Send SMS verification code
@@ -195,6 +204,20 @@ router.post('/resend-sms', [
 
     const { email } = req.body;
 
+    // Check rate limiting - max 3 resends per 10 minutes
+    const now = Date.now();
+    const resendData = resendAttempts.get(email) || { count: 0, firstAttempt: now };
+    
+    if (now - resendData.firstAttempt > 10 * 60 * 1000) {
+      // Reset if more than 10 minutes have passed
+      resendData.count = 0;
+      resendData.firstAttempt = now;
+    }
+    
+    if (resendData.count >= 3) {
+      return res.status(429).json({ error: 'Too many resend attempts. Please wait 10 minutes before trying again.' });
+    }
+
     // Get pending signup
     const pendingSignup = pendingSignups.get(email);
     if (!pendingSignup) {
@@ -204,6 +227,10 @@ router.post('/resend-sms', [
     // Send new verification code
     try {
       const result = await smsService.sendVerificationCode(pendingSignup.phone, email);
+      
+      // Update rate limiting
+      resendData.count++;
+      resendAttempts.set(email, resendData);
       
       res.status(200).json({
         message: 'Verification code resent',
@@ -219,6 +246,19 @@ router.post('/resend-sms', [
     res.status(500).json({ error: 'Failed to resend code' });
   }
 });
+
+// Clean up expired pending signups (run periodically)
+function cleanupExpiredPendingSignups() {
+  const now = new Date();
+  for (const [email, data] of pendingSignups.entries()) {
+    if (data.expiresAt && now > new Date(data.expiresAt)) {
+      pendingSignups.delete(email);
+    }
+  }
+}
+
+// Run cleanup every 5 minutes
+setInterval(cleanupExpiredPendingSignups, 5 * 60 * 1000);
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
