@@ -3,71 +3,7 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
-const crypto = require('crypto');
 const dataStore = require('../utils/dataStore');
-
-// Encryption configuration for sensitive message data
-let ENCRYPTION_KEY;
-if (process.env.ENCRYPTION_KEY) {
-  // Use provided key (must be 64 hex characters = 32 bytes)
-  ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
-  if (ENCRYPTION_KEY.length !== 32) {
-    console.error('FATAL ERROR: ENCRYPTION_KEY must be 64 hex characters (32 bytes).');
-    console.error('Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-    process.exit(1);
-  }
-} else if (process.env.NODE_ENV === 'production') {
-  console.error('FATAL ERROR: ENCRYPTION_KEY environment variable is not set in production.');
-  console.error('Contact messages will not be encrypted without this key.');
-  console.error('Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  process.exit(1);
-} else {
-  // Development only: use random key
-  ENCRYPTION_KEY = crypto.randomBytes(32);
-  console.warn('WARNING: ENCRYPTION_KEY not set. Using random key - encrypted data will be lost on server restart.');
-}
-
-const ALGORITHM = 'aes-256-gcm';
-
-// Warn if using random encryption key (data won't persist across restarts)
-if (!process.env.ENCRYPTION_KEY && process.env.NODE_ENV !== 'production') {
-  console.warn('WARNING: Using temporary encryption key for development. Set ENCRYPTION_KEY in production.');
-}
-
-// Helper function to encrypt sensitive data
-function encrypt(text) {
-  if (!text) return null;
-  const iv = crypto.randomBytes(16); // Initialization vector
-  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag();
-  // Return iv, authTag, and encrypted data together
-  return {
-    iv: iv.toString('hex'),
-    authTag: authTag.toString('hex'),
-    data: encrypted
-  };
-}
-
-// Helper function to decrypt sensitive data
-function decrypt(encryptedObj) {
-  if (!encryptedObj || !encryptedObj.data) return null;
-  try {
-    const decipher = crypto.createDecipheriv(
-      ALGORITHM,
-      ENCRYPTION_KEY,
-      Buffer.from(encryptedObj.iv, 'hex')
-    );
-    decipher.setAuthTag(Buffer.from(encryptedObj.authTag, 'hex'));
-    let decrypted = decipher.update(encryptedObj.data, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
-  } catch (error) {
-    console.error('Decryption error:', error);
-    return null;
-  }
-}
 
 // Helper function to escape HTML to prevent XSS
 function escapeHtml(text) {
@@ -120,12 +56,12 @@ router.post('/submit', contactLimiter, validateContactForm, async (req, res) => 
 
     const { name, email, subject, message, type = 'general' } = req.body;
 
-    // Track contact submission for admin analytics (encrypt sensitive message content)
+    // Track contact submission for admin analytics
     dataStore.trackContactSubmission({
       name,
       email,
       subject,
-      message: encrypt(message), // Encrypt the message content
+      message,
       type,
       status: 'new'
     });
@@ -203,12 +139,12 @@ router.post('/complaint', contactLimiter, validateContactForm, async (req, res) 
 
     const { name, email, subject, message, priority = 'medium' } = req.body;
 
-    // Track complaint submission for admin analytics (encrypt sensitive message content)
+    // Track complaint submission for admin analytics
     dataStore.trackContactSubmission({
       name,
       email,
       subject,
-      message: encrypt(message), // Encrypt the message content
+      message,
       type: 'complaint',
       priority,
       status: 'new'
@@ -271,4 +207,3 @@ router.get('/info', (req, res) => {
 });
 
 module.exports = router;
-module.exports.decrypt = decrypt; // Export decrypt function for admin routes
