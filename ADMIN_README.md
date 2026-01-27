@@ -9,7 +9,11 @@ The admin backend provides comprehensive monitoring and management capabilities:
 ### 1. Admin Authentication
 - Secure JWT-based authentication
 - Role-based access control
-- Default credentials: `admin@ezclippin.studio` / `admin123` (change in production!)
+- Admin credentials configured via environment variables:
+  - `ADMIN_EMAIL`: Admin user email address
+  - `ADMIN_PASSWORD_HASH`: Bcrypt hash of admin password
+  - `ADMIN_NAME`: Admin user display name
+- Default credentials (for development only): `admin@ezclippin.studio` / `admin123`
 
 ### 2. Dashboard Overview
 - View total users, visits, downloads, and contact submissions
@@ -115,24 +119,30 @@ GET /api/admin/subscription-events
 
 ⚠️ **IMPORTANT FOR PRODUCTION:**
 
-1. **Change Default Password**: Update the admin password in `middleware/admin.js`
-   - Generate a bcrypt hash: `bcrypt.hash('your-secure-password', 10)`
-   - Replace the hash in the ADMIN_USERS Map
+1. **Change Default Admin Credentials**: Set secure admin credentials via environment variables
+   - Set `ADMIN_EMAIL` to your admin email address
+   - Generate a bcrypt hash for your password:
+     ```bash
+     node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('your-secure-password', 10, (err, hash) => console.log(hash));"
+     ```
+   - Set `ADMIN_PASSWORD_HASH` to the generated hash
+   - Optionally set `ADMIN_NAME` to customize the admin display name
 
-2. **Use Environment Variables**: Store admin credentials in environment variables
+2. **HTTPS Only**: Always use HTTPS in production
 
-3. **HTTPS Only**: Always use HTTPS in production
+3. **Strong, Mandatory JWT Secret**:
+   - **REQUIRED**: Set a strong, random `JWT_SECRET` via environment variables
+   - The server will **fail to start** if `JWT_SECRET` is missing or empty
+   - Generate a secure secret: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
+   - Never use default or hardcoded secrets in any environment
 
-4. **Strong, Mandatory JWT Secret**:
-   - Always set a strong, random `JWT_SECRET` via environment variables (in all environments).
-   - Do **not** rely on any hardcoded or default JWT secret for signing tokens.
-   - Configure the server to **fail fast on startup** if `JWT_SECRET` is missing or empty.
+4. **Database Migration**: Replace in-memory storage with a proper database
 
-5. **Database Migration**: Replace in-memory storage with a proper database
+5. **Rate Limiting**: The admin routes inherit API rate limiting
 
-6. **Rate Limiting**: The admin routes inherit API rate limiting
+6. **Audit Logging**: All admin actions are logged with timestamps and admin email
 
-7. **Audit Logging**: All admin actions are logged with timestamps and admin email
+7. **Data Retention**: In-memory data is automatically purged after 7 days (configurable)
 
 ## Data Storage
 
