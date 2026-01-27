@@ -3,6 +3,7 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const { body, validationResult } = require('express-validator');
 const rateLimit = require('express-rate-limit');
+const dataStore = require('../utils/dataStore');
 
 // Helper function to escape HTML to prevent XSS
 function escapeHtml(text) {
@@ -54,6 +55,16 @@ router.post('/submit', contactLimiter, validateContactForm, async (req, res) => 
     }
 
     const { name, email, subject, message, type = 'general' } = req.body;
+
+    // Track contact submission for admin analytics
+    dataStore.trackContactSubmission({
+      name,
+      email,
+      subject,
+      message,
+      type,
+      status: 'new'
+    });
 
     // Log the submission
     console.log('Contact form submission:', {
@@ -127,6 +138,17 @@ router.post('/complaint', contactLimiter, validateContactForm, async (req, res) 
     }
 
     const { name, email, subject, message, priority = 'medium' } = req.body;
+
+    // Track complaint submission for admin analytics
+    dataStore.trackContactSubmission({
+      name,
+      email,
+      subject,
+      message,
+      type: 'complaint',
+      priority,
+      status: 'new'
+    });
 
     // Log the complaint
     console.log('Complaint submission:', {

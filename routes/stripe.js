@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Stripe = require('stripe');
 const { verifyToken } = require('./auth');
+const dataStore = require('../utils/dataStore');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 
@@ -156,31 +157,67 @@ router.post('/webhook', async (req, res) => {
       case 'checkout.session.completed':
         const session = event.data.object;
         console.log('Checkout completed:', session);
+        dataStore.trackSubscriptionEvent({
+          type: 'checkout_completed',
+          userId: session.client_reference_id,
+          sessionId: session.id,
+          data: session
+        });
         // Update user subscription in database
         break;
 
       case 'customer.subscription.created':
         console.log('Subscription created:', event.data.object);
+        dataStore.trackSubscriptionEvent({
+          type: 'subscription_created',
+          subscriptionId: event.data.object.id,
+          userId: event.data.object.metadata?.userId,
+          data: event.data.object
+        });
         // Update user subscription status
         break;
 
       case 'customer.subscription.updated':
         console.log('Subscription updated:', event.data.object);
+        dataStore.trackSubscriptionEvent({
+          type: 'subscription_updated',
+          subscriptionId: event.data.object.id,
+          userId: event.data.object.metadata?.userId,
+          data: event.data.object
+        });
         // Update user subscription status
         break;
 
       case 'customer.subscription.deleted':
         console.log('Subscription deleted:', event.data.object);
+        dataStore.trackSubscriptionEvent({
+          type: 'subscription_deleted',
+          subscriptionId: event.data.object.id,
+          userId: event.data.object.metadata?.userId,
+          data: event.data.object
+        });
         // Downgrade user to free plan
         break;
 
       case 'invoice.payment_succeeded':
         console.log('Payment succeeded:', event.data.object);
+        dataStore.trackSubscriptionEvent({
+          type: 'payment_succeeded',
+          invoiceId: event.data.object.id,
+          subscriptionId: event.data.object.subscription,
+          data: event.data.object
+        });
         // Send receipt email
         break;
 
       case 'invoice.payment_failed':
         console.log('Payment failed:', event.data.object);
+        dataStore.trackSubscriptionEvent({
+          type: 'payment_failed',
+          invoiceId: event.data.object.id,
+          subscriptionId: event.data.object.subscription,
+          data: event.data.object
+        });
         // Notify user of payment failure
         break;
 
