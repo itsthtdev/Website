@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 
 // In-memory user storage (in production, use a database)
@@ -33,7 +34,7 @@ const generateToken = (userId) => {
   );
 };
 
-// Signup endpoint
+// Signup endpoint - creates user immediately without SMS verification
 router.post('/signup', validateSignup, async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -51,7 +52,7 @@ router.post('/signup', validateSignup, async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Store user (in production, save to database)
+    // Create user immediately (no SMS verification in beta)
     const user = {
       id: crypto.randomUUID(),
       name,
@@ -59,7 +60,7 @@ router.post('/signup', validateSignup, async (req, res) => {
       phone,
       password: hashedPassword,
       subscription: 'free',
-      verified: false,
+      verified: true, // Auto-verified in beta
       createdAt: new Date().toISOString()
     };
 
@@ -121,15 +122,6 @@ router.post('/login', validateLogin, async (req, res) => {
   }
 });
 
-// Verify SMS code endpoint
-router.post('/verify-sms', (req, res) => {
-  // SMS verification is not implemented securely yet.
-  // To avoid insecure phone verification bypass, this endpoint is disabled
-  // until proper SMS code generation, delivery, and validation is in place.
-  return res.status(501).json({
-    error: 'SMS verification is not implemented. Phone verification is currently disabled.'
-  });
-});
 
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {

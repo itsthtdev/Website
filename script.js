@@ -304,8 +304,8 @@ if (loginForm) {
         form.reset();
         updateUIForLoggedInUser();
         
-        // Show success message
-        alert('Login successful!');
+        // Redirect to dashboard
+        window.location.href = '/dashboard.html';
       } else {
         throw new Error(data.error || 'Login failed');
       }
@@ -544,166 +544,62 @@ if (signupFormElement) {
     signupFormElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        const name = document.getElementById('signup-name').value;
+        const email = document.getElementById('signup-email').value;
         const phone = document.getElementById('signup-phone').value;
-        // Passwords are sent securely to backend via HTTPS
-        // Backend must hash passwords using bcrypt/argon2 before storage
+        const password = document.getElementById('signup-password').value;
+        const confirm = document.getElementById('signup-confirm').value;
+        
+        // Validate passwords match
+        if (password !== confirm) {
+            alert('Passwords do not match');
+            return;
+        }
         
         const submitBtn = document.getElementById('signup-submit-btn');
         
-        // In production: Send verification code via SMS API (Twilio, AWS SNS, etc.)
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating account...';
+            
+            const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, phone, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Store auth token and user data
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('authToken', authToken);
+                
+                // Close modal
+                modal.classList.remove('active');
+                signupFormElement.reset();
+                
+                updateUIForLoggedInUser();
+                
+                // Redirect to dashboard
+                window.location.href = '/dashboard.html';
+            } else {
+                throw new Error(data.error || 'Signup failed');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            alert(error.message || 'Failed to create account. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+        }
     });
 }
 
-// Handle verification code inputs
-const verificationDigits = document.querySelectorAll('.verification-digit');
-verificationDigits.forEach((digit, index) => {
-    // Select value on focus for easy editing
-    digit.addEventListener('focus', (e) => {
-        setTimeout(() => {
-            if (e.target.select) {
-                e.target.select();
-            }
-        }, 0);
-    });
-    
-    digit.addEventListener('input', (e) => {
-        let value = e.target.value;
-        
-        // Keep only digits
-        value = value.replace(/\D/g, '');
-        
-        if (!value) {
-            e.target.value = '';
-            return;
-        }
-        
-        // Normalize to a single digit
-        if (value.length > 1) {
-            value = value.charAt(value.length - 1);
-        }
-        
-        e.target.value = value;
-        
-        // Auto-focus next input
-        if (index < verificationDigits.length - 1) {
-            const nextDigit = verificationDigits[index + 1];
-            nextDigit.focus();
-            if (nextDigit.select) {
-                nextDigit.select();
-            }
-        }
-    });
-    
-    digit.addEventListener('keydown', (e) => {
-        // Handle backspace: move to previous input when current is empty
-        if (e.key === 'Backspace' && !e.target.value && index > 0) {
-            const prevDigit = verificationDigits[index - 1];
-            prevDigit.focus();
-            if (prevDigit.select) {
-                prevDigit.select();
-            }
-            return;
-        }
-        
-        // Handle arrow keys for navigation
-        if (e.key === 'ArrowLeft' && index > 0) {
-            e.preventDefault();
-            const prevDigit = verificationDigits[index - 1];
-            prevDigit.focus();
-            if (prevDigit.select) {
-                prevDigit.select();
-            }
-        } else if (e.key === 'ArrowRight' && index < verificationDigits.length - 1) {
-            e.preventDefault();
-            const nextDigit = verificationDigits[index + 1];
-            nextDigit.focus();
-            if (nextDigit.select) {
-                nextDigit.select();
-            }
-        }
-        
-        // Focus the last filled digit or next empty one
-        const nextIndex = Math.min(index + digits.length, verificationDigits.length - 1);
-        verificationDigits[nextIndex].focus();
-    });
-    
-    // Handle paste event
-    digit.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const pasteData = e.clipboardData.getData('text');
-        const digits = pasteData.replace(/\D/g, '').slice(0, 6);
-        
-        // Fill in the digits starting from current position
-        for (let i = 0; i < digits.length && (index + i) < verificationDigits.length; i++) {
-            verificationDigits[index + i].value = digits[i];
-        }
-        
-        // Focus the last filled digit or next empty one
-        const nextIndex = Math.min(index + digits.length, verificationDigits.length - 1);
-        verificationDigits[nextIndex].focus();
-    });
-});
-
-// Handle verification form submission
-const verificationForm = document.getElementById('verification-form');
-if (verificationForm) {
-    verificationForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        // Collect verification code
-        const code = Array.from(verificationDigits).map(input => input.value).join('');
-        
-        // Validate all digits are entered
-        if (code.length !== 6 || !/^\d{6}$/.test(code)) {
-            // Show error message
-            const errorMsg = document.getElementById('verification-error-message');
-            if (errorMsg) {
-                errorMsg.style.color = '#ef4444';
-                errorMsg.textContent = 'Please enter all 6 digits';
-                setTimeout(() => {
-                    errorMsg.textContent = '';
-                }, 3000);
-            }
-            return;
-        }
-        
-        // In production: Verify code with backend
-        
-        // Close modal and show success
-        modal.classList.remove('active');
-        
-        // Reset forms
-        document.getElementById('signup-form').style.display = 'block';
-        document.getElementById('sms-verification').style.display = 'none';
-        signupFormElement.reset();
-        verificationDigits.forEach(digit => digit.value = '');
-        
-        // In production: Redirect to dashboard after successful verification
-    });
-}
-
-// Handle resend code
-const resendCodeBtn = document.getElementById('resend-code');
-if (resendCodeBtn) {
-    resendCodeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        // In production: Resend SMS code
-        
-        // Remove any existing success messages
-        const existingMsg = resendCodeBtn.parentElement.querySelector('.success-message');
-        if (existingMsg) {
-            existingMsg.remove();
-        }
-        
-        // Show success message
-        const successMsg = document.createElement('small');
-        successMsg.style.color = '#10b981';
-        successMsg.textContent = 'Code resent successfully!';
-        successMsg.className = 'success-message';
-        resendCodeBtn.parentElement.appendChild(successMsg);
-        setTimeout(() => successMsg.remove(), 3000);
-    });
-}
+// SMS verification removed for beta - users are created immediately upon signup
 
 // Animated counters for stats
 function animateCounter(element, target, duration = 2000) {
