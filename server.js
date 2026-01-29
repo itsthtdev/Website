@@ -46,26 +46,7 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Analytics middleware to track visits
-app.use((req, res, next) => {
-  // Track non-API requests (website visits)
-  if (!req.path.startsWith('/api/') && !req.path.includes('.')) {
-    dataStore.trackVisit({
-      ip: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('user-agent'),
-      path: req.path,
-      referrer: req.get('referrer') || 'direct'
-    });
-  }
-  next();
-});
-
-// Serve static files
-app.use(express.static('.', {
-  index: 'index.html'
-}));
-
-// API Routes
+// API Routes - Mount BEFORE static files to ensure API routes take precedence
 const authRoutes = require('./routes/auth');
 const downloadRoutes = require('./routes/download');
 // stripeRoutes already loaded above for webhook
@@ -86,6 +67,25 @@ app.get('/api/health', (req, res) => {
     service: 'EzClippin API'
   });
 });
+
+// Analytics middleware to track visits
+app.use((req, res, next) => {
+  // Track non-API requests (website visits)
+  if (!req.path.startsWith('/api/') && !req.path.includes('.')) {
+    dataStore.trackVisit({
+      ip: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('user-agent'),
+      path: req.path,
+      referrer: req.get('referrer') || 'direct'
+    });
+  }
+  next();
+});
+
+// Serve static files - Mount AFTER API routes
+app.use(express.static('.', {
+  index: 'index.html'
+}));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
