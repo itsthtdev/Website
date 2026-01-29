@@ -46,6 +46,19 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// API Routes - Mount BEFORE static files to ensure API routes take precedence
+const authRoutes = require('./routes/auth');
+const downloadRoutes = require('./routes/download');
+// stripeRoutes already loaded above for webhook
+const contactRoutes = require('./routes/contact');
+const adminRoutes = require('./routes/admin');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/download', downloadRoutes);
+app.use('/api/stripe', stripeRoutes); // Other Stripe routes
+app.use('/api/contact', contactRoutes);
+app.use('/api/admin', adminRoutes);
+
 // Analytics middleware to track visits
 app.use((req, res, next) => {
   // Track non-API requests (website visits)
@@ -60,23 +73,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files
+// Serve static files - Mount AFTER API routes
 app.use(express.static('.', {
   index: 'index.html'
 }));
-
-// API Routes
-const authRoutes = require('./routes/auth');
-const downloadRoutes = require('./routes/download');
-// stripeRoutes already loaded above for webhook
-const contactRoutes = require('./routes/contact');
-const adminRoutes = require('./routes/admin');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/download', downloadRoutes);
-app.use('/api/stripe', stripeRoutes); // Other Stripe routes
-app.use('/api/contact', contactRoutes);
-app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
