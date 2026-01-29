@@ -59,6 +59,15 @@ app.use('/api/stripe', stripeRoutes); // Other Stripe routes
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'EzClippin API'
+  });
+});
+
 // Analytics middleware to track visits
 app.use((req, res, next) => {
   // Track non-API requests (website visits)
@@ -77,15 +86,6 @@ app.use((req, res, next) => {
 app.use(express.static('.', {
   index: 'index.html'
 }));
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    service: 'EzClippin API'
-  });
-});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
