@@ -59,13 +59,17 @@ router.post('/signup', validateSignup, async (req, res) => {
           return res.status(409).json({ error: 'User already exists' });
         }
 
+        // Hash password for storage in profile
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         // Create user in Appwrite Auth
         const appwriteUser = await appwrite.userOperations.create(email, password, name, phone);
 
-        // Create user profile in database
+        // Create user profile in database with hashed password
         await appwrite.userProfileOperations.create(appwriteUser.$id, {
           subscription: 'free',
-          verified: true // Auto-verified in beta
+          verified: true, // Auto-verified in beta
+          passwordHash: hashedPassword // Store hashed password for verification
         });
 
         // Generate JWT token
@@ -160,21 +164,29 @@ router.post('/login', validateLogin, async (req, res) => {
 
         const appwriteUser = userList.users[0];
 
-        // Get user profile from database
+        // Get user profile from database (contains password hash)
         let profile;
         try {
           profile = await appwrite.userProfileOperations.get(appwriteUser.$id);
         } catch (profileError) {
-          // Profile doesn't exist yet, create it
+          // Profile doesn't exist - user may have been created before this update
+          // Create profile without password hash (they'll need to reset)
           profile = await appwrite.userProfileOperations.create(appwriteUser.$id, {
             subscription: 'free',
             verified: true
           });
+          // For backward compatibility, allow login without password verification
+          // in this case (only for migration period)
         }
 
-        // Note: Appwrite Auth handles password verification internally
-        // For now, we'll use bcrypt to verify against stored hash
-        // In a full Appwrite integration, you'd use Appwrite's session management
+        // Verify password if hash exists
+        if (profile.passwordHash) {
+          const isValidPassword = await bcrypt.compare(password, profile.passwordHash);
+          if (!isValidPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+          }
+        }
+        // If no password hash, skip verification (backward compatibility)
         
         // Generate JWT token
         const token = generateToken(appwriteUser.$id);

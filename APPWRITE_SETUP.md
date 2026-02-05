@@ -54,6 +54,7 @@ Appwrite is an open-source backend-as-a-service platform that provides:
      - `subscription` (string, required, size: 50, default: "free")
      - `verified` (boolean, required, default: true)
      - `createdAt` (string, required, size: 50)
+     - `passwordHash` (string, size: 255) - Stores bcrypt password hash for authentication
    - Permissions: 
      - Create: Users
      - Read: Users (owner only)
