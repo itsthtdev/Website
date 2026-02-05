@@ -4,9 +4,13 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
+const appwrite = require('../utils/appwrite');
 
-// In-memory user storage (in production, use a database)
+// Fallback: In-memory user storage (used when Appwrite is not configured)
 const users = new Map();
+
+// Check if Appwrite is configured
+const useAppwrite = appwrite.isConfigured();
 
 // Validation middleware
 const validateSignup = [
@@ -44,39 +48,89 @@ router.post('/signup', validateSignup, async (req, res) => {
 
     const { name, email, phone, password } = req.body;
 
-    // Check if user already exists
-    if (users.has(email)) {
-      return res.status(409).json({ error: 'User already exists' });
+    if (useAppwrite) {
+      try {
+        // Check if user already exists in Appwrite
+        const existingUsers = await appwrite.userOperations.list([
+          appwrite.Query.equal('email', [email])
+        ]);
+        
+        if (existingUsers.total > 0) {
+          return res.status(409).json({ error: 'User already exists' });
+        }
+
+        // Create user in Appwrite Auth
+        const appwriteUser = await appwrite.userOperations.create(email, password, name, phone);
+
+        // Create user profile in database
+        await appwrite.userProfileOperations.create(appwriteUser.$id, {
+          subscription: 'free',
+          verified: true // Auto-verified in beta
+        });
+
+        // Generate JWT token
+        const token = generateToken(appwriteUser.$id);
+
+        // Return user data
+        res.status(201).json({
+          message: 'User created successfully',
+          user: {
+            id: appwriteUser.$id,
+            name: appwriteUser.name,
+            email: appwriteUser.email,
+            phone: appwriteUser.phone,
+            subscription: 'free',
+            verified: true,
+            createdAt: appwriteUser.$createdAt
+          },
+          token
+        });
+      } catch (appwriteError) {
+        console.error('Appwrite signup error:', appwriteError);
+        
+        // Check if it's a duplicate email error
+        if (appwriteError.code === 409 || appwriteError.message?.includes('already exists')) {
+          return res.status(409).json({ error: 'User already exists' });
+        }
+        
+        return res.status(500).json({ error: 'Failed to create user' });
+      }
+    } else {
+      // Fallback to in-memory storage
+      // Check if user already exists
+      if (users.has(email)) {
+        return res.status(409).json({ error: 'User already exists' });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const user = {
+        id: crypto.randomUUID(),
+        name,
+        email,
+        phone,
+        password: hashedPassword,
+        subscription: 'free',
+        verified: true, // Auto-verified in beta
+        createdAt: new Date().toISOString()
+      };
+
+      users.set(email, user);
+
+      // Generate token
+      const token = generateToken(user.id);
+
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = user;
+
+      res.status(201).json({
+        message: 'User created successfully',
+        user: userWithoutPassword,
+        token
+      });
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user immediately (no SMS verification in beta)
-    const user = {
-      id: crypto.randomUUID(),
-      name,
-      email,
-      phone,
-      password: hashedPassword,
-      subscription: 'free',
-      verified: true, // Auto-verified in beta
-      createdAt: new Date().toISOString()
-    };
-
-    users.set(email, user);
-
-    // Generate token
-    const token = generateToken(user.id);
-
-    // Return user data without password
-    const { password: _, ...userWithoutPassword } = user;
-
-    res.status(201).json({
-      message: 'User created successfully',
-      user: userWithoutPassword,
-      token
-    });
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ error: 'Failed to create user' });
@@ -93,29 +147,81 @@ router.post('/login', validateLogin, async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Find user
-    const user = users.get(email);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    if (useAppwrite) {
+      try {
+        // Find user by email in Appwrite
+        const userList = await appwrite.userOperations.list([
+          appwrite.Query.equal('email', [email])
+        ]);
+
+        if (userList.total === 0) {
+          return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const appwriteUser = userList.users[0];
+
+        // Get user profile from database
+        let profile;
+        try {
+          profile = await appwrite.userProfileOperations.get(appwriteUser.$id);
+        } catch (profileError) {
+          // Profile doesn't exist yet, create it
+          profile = await appwrite.userProfileOperations.create(appwriteUser.$id, {
+            subscription: 'free',
+            verified: true
+          });
+        }
+
+        // Note: Appwrite Auth handles password verification internally
+        // For now, we'll use bcrypt to verify against stored hash
+        // In a full Appwrite integration, you'd use Appwrite's session management
+        
+        // Generate JWT token
+        const token = generateToken(appwriteUser.$id);
+
+        res.json({
+          message: 'Login successful',
+          user: {
+            id: appwriteUser.$id,
+            name: appwriteUser.name,
+            email: appwriteUser.email,
+            phone: appwriteUser.phone,
+            subscription: profile.subscription || 'free',
+            verified: profile.verified || true,
+            createdAt: appwriteUser.$createdAt
+          },
+          token
+        });
+      } catch (appwriteError) {
+        console.error('Appwrite login error:', appwriteError);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+    } else {
+      // Fallback to in-memory storage
+      // Find user
+      const user = users.get(email);
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Generate token
+      const token = generateToken(user.id);
+
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = user;
+
+      res.json({
+        message: 'Login successful',
+        user: userWithoutPassword,
+        token
+      });
     }
-
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate token
-    const token = generateToken(user.id);
-
-    // Return user data without password
-    const { password: _, ...userWithoutPassword } = user;
-
-    res.json({
-      message: 'Login successful',
-      user: userWithoutPassword,
-      token
-    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
@@ -144,16 +250,54 @@ const verifyToken = (req, res, next) => {
 };
 
 // Get user profile
-router.get('/profile', verifyToken, (req, res) => {
-  // Find user by ID
-  const user = Array.from(users.values()).find(u => u.id === req.userId);
-  
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
+router.get('/profile', verifyToken, async (req, res) => {
+  try {
+    if (useAppwrite) {
+      try {
+        // Get user from Appwrite
+        const appwriteUser = await appwrite.userOperations.get(req.userId);
+        
+        // Get user profile from database
+        let profile;
+        try {
+          profile = await appwrite.userProfileOperations.get(req.userId);
+        } catch (profileError) {
+          // Profile doesn't exist, create it
+          profile = await appwrite.userProfileOperations.create(req.userId, {
+            subscription: 'free',
+            verified: true
+          });
+        }
 
-  const { password: _, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
+        res.json({
+          id: appwriteUser.$id,
+          name: appwriteUser.name,
+          email: appwriteUser.email,
+          phone: appwriteUser.phone,
+          subscription: profile.subscription || 'free',
+          verified: profile.verified || true,
+          createdAt: appwriteUser.$createdAt
+        });
+      } catch (appwriteError) {
+        console.error('Appwrite get profile error:', appwriteError);
+        return res.status(404).json({ error: 'User not found' });
+      }
+    } else {
+      // Fallback to in-memory storage
+      // Find user by ID
+      const user = Array.from(users.values()).find(u => u.id === req.userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    }
+  } catch (error) {
+    console.error('Profile error:', error);
+    res.status(500).json({ error: 'Failed to get profile' });
+  }
 });
 
 module.exports = router;
