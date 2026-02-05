@@ -93,20 +93,43 @@ Then visit: http://localhost:8080
 ## ✨ Features
 
 - **Responsive Design**: Works on desktop, tablet, and mobile
-- **Authentication Modals**: Login and signup forms with validation
+- **Authentication System**: Full user registration and login with JWT
+- **Appwrite.io Backend**: Persistent cloud database for users and data
 - **Password Strength Checker**: Real-time password validation
-- **SMS Verification UI**: 6-digit verification code input
+- **Download Management**: Platform-specific installers for Windows, macOS, and Linux
+- **Stripe Integration**: Payment processing for subscriptions
+- **Contact Forms**: Support and complaint submission system
 - **Smooth Animations**: Scroll animations and transitions
 - **Mobile Menu**: Hamburger menu for mobile devices
 - **Animated Counters**: Hero statistics with count-up animation
+- **Analytics Tracking**: Visit and download tracking
+
+## 🗄️ Backend & Database
+
+This website now supports **Appwrite.io** as a backend database solution:
+
+- **Persistent Data Storage**: Users, analytics, contacts, and downloads
+- **Cloud or Self-Hosted**: Use Appwrite Cloud or host your own instance
+- **Automatic Fallback**: Falls back to in-memory storage if Appwrite is not configured
+- **Easy Setup**: See [APPWRITE_SETUP.md](APPWRITE_SETUP.md) for detailed instructions
+
+To enable Appwrite integration:
+1. Create an Appwrite project at https://cloud.appwrite.io
+2. Configure environment variables (see `.env.example`)
+3. Follow the setup guide in [APPWRITE_SETUP.md](APPWRITE_SETUP.md)
 
 ## 🔒 Security Notes
 
 - All forms include client-side validation
 - Password requirements are enforced
+- JWT-based authentication with secure token generation
 - Phone number validation for SMS verification
 - Email validation patterns
-- Ready for backend integration with HTTPS endpoints
+- Bcrypt password hashing
+- Rate limiting on API endpoints
+- Helmet security headers
+- CORS configuration
+- Ready for production with HTTPS
 
 ## 📝 License
 
