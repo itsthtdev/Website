@@ -59,6 +59,8 @@ http://localhost:3000
 
 ### 🔐 Authentication
 - Secure signup/login with JWT
+- Appwrite.io backend integration
+- Persistent user data storage
 - Password strength validation
 - SMS verification ready
 - Session management
@@ -116,6 +118,21 @@ http://localhost:3000
 ## Environment Variables (Required)
 
 ```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# Appwrite Configuration (Recommended for Production)
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=your_project_id_here
+APPWRITE_API_KEY=your_api_key_here
+APPWRITE_DATABASE_ID=your_database_id_here
+APPWRITE_USERS_COLLECTION_ID=your_users_collection_id
+APPWRITE_VISITS_COLLECTION_ID=your_visits_collection_id
+APPWRITE_CONTACTS_COLLECTION_ID=your_contacts_collection_id
+APPWRITE_DOWNLOADS_COLLECTION_ID=your_downloads_collection_id
+APPWRITE_SUBSCRIPTIONS_COLLECTION_ID=your_subscriptions_collection_id
+
 # Stripe Keys (from stripe.com/dashboard)
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
@@ -133,6 +150,9 @@ EMAIL_PASSWORD=<app-password>
 # Download URLs
 DOWNLOAD_BASE_URL=https://github.com/itsthtdev/VS_auto_clipper/releases/latest/download
 ```
+
+**Note:** If Appwrite is not configured, the system falls back to in-memory storage (development only).
+For production deployment, see [APPWRITE_SETUP.md](APPWRITE_SETUP.md) for full setup instructions.
 
 ## Testing the API
 
@@ -168,17 +188,17 @@ See `DEPLOYMENT.md` for detailed instructions.
 Before deploying to production:
 
 - [ ] Set `NODE_ENV=production`
+- [ ] Configure Appwrite backend (see [APPWRITE_SETUP.md](APPWRITE_SETUP.md))
 - [ ] Use production Stripe keys (sk_live_...)
 - [ ] Configure production email service
 - [ ] Set strong JWT_SECRET (32+ chars)
 - [ ] Enable HTTPS
-- [ ] Setup database (PostgreSQL/MongoDB)
 - [ ] Configure webhook URLs
 - [ ] Setup monitoring (Sentry, Uptime)
 - [ ] Test all payment flows
 - [ ] Test email delivery
 - [ ] Review rate limits
-- [ ] Setup backups
+- [ ] Verify Appwrite collection permissions
 - [ ] Add logging
 
 ## Support & Issues
@@ -196,25 +216,31 @@ This website is the download and subscription portal for the EzClippin software 
 
 ## What's Working
 
-✅ All backend API endpoints functional
-✅ User authentication with JWT
-✅ Download management system
-✅ Stripe integration ready
-✅ Contact/complaint forms
-✅ Email notifications
-✅ Security features enabled
-✅ No security vulnerabilities
-✅ Responsive design
-✅ All tests passing
+✅ All backend API endpoints functional  
+✅ User authentication with JWT  
+✅ **Appwrite.io backend integration** (NEW!)  
+✅ Persistent data storage with Appwrite  
+✅ Automatic fallback to in-memory storage  
+✅ Download management system  
+✅ Stripe integration ready  
+✅ Contact/complaint forms  
+✅ Email notifications  
+✅ Security features enabled  
+✅ No security vulnerabilities  
+✅ Responsive design  
+✅ All tests passing  
 
 ## Next Steps
 
-1. Configure your Stripe account and get API keys
-2. Setup email service (Gmail or SendGrid)
-3. Deploy to your preferred hosting platform
-4. Upload EzClippin software releases to VS_auto_clipper repo
-5. Test complete user flow end-to-end
-6. Launch! 🚀
+1. **Setup Appwrite backend** (recommended for production)
+   - Follow [APPWRITE_SETUP.md](APPWRITE_SETUP.md)
+   - Create collections and configure permissions
+2. Configure your Stripe account and get API keys
+3. Setup email service (Gmail or SendGrid)
+4. Deploy to your preferred hosting platform
+5. Upload EzClippin software releases to VS_auto_clipper repo
+6. Test complete user flow end-to-end
+7. Launch! 🚀
 
 ---
 
