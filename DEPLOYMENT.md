@@ -242,10 +242,13 @@ DOWNLOAD_BASE_URL=https://github.com/itsthtdev/VS_auto_clipper/releases/latest/d
 - [ ] Enable rate limiting (already configured)
 - [ ] Setup monitoring and error logging
 - [ ] Regular security updates: `npm audit fix`
-- [ ] Implement database for user storage
-- [ ] Setup backups
+- [ ] Configure Appwrite backend with proper permissions (recommended)
+- [ ] OR implement alternative database for user storage
+- [ ] Setup backups (automatic with Appwrite Cloud)
 - [ ] Enable firewall on server
 - [ ] Use environment variables for all secrets
+- [ ] Review Appwrite collection permissions
+- [ ] Secure API keys with minimal required scopes
 
 ## Monitoring
 
@@ -272,7 +275,47 @@ Use services like:
 
 ## Database Setup (Recommended for Production)
 
-### PostgreSQL Setup
+### Appwrite Backend (Recommended)
+
+**Appwrite** is now the recommended backend solution, providing:
+- User authentication and management
+- Persistent database storage
+- Built-in security and permissions
+- Real-time capabilities
+- Easy setup with cloud or self-hosted options
+
+**Quick Setup:**
+
+1. **Create Appwrite Cloud Account**
+   - Sign up at https://cloud.appwrite.io
+   - Create a new project
+
+2. **Configure Collections**
+   - Follow the detailed guide in [APPWRITE_SETUP.md](APPWRITE_SETUP.md)
+   - Create collections for users, visits, contacts, downloads, and subscriptions
+
+3. **Set Environment Variables**
+   ```bash
+   APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+   APPWRITE_PROJECT_ID=your_project_id
+   APPWRITE_API_KEY=your_api_key
+   APPWRITE_DATABASE_ID=your_database_id
+   APPWRITE_USERS_COLLECTION_ID=your_collection_id
+   APPWRITE_VISITS_COLLECTION_ID=your_collection_id
+   APPWRITE_CONTACTS_COLLECTION_ID=your_collection_id
+   APPWRITE_DOWNLOADS_COLLECTION_ID=your_collection_id
+   APPWRITE_SUBSCRIPTIONS_COLLECTION_ID=your_collection_id
+   ```
+
+4. **Deploy and Test**
+   - Server automatically uses Appwrite when configured
+   - Falls back to in-memory storage if not configured
+
+**Full documentation:** See [APPWRITE_SETUP.md](APPWRITE_SETUP.md)
+
+### PostgreSQL Setup (Alternative)
+
+If you prefer PostgreSQL over Appwrite:
 
 1. **Install PostgreSQL**
 ```bash
@@ -293,6 +336,18 @@ npm install pg
 Replace Map storage with PostgreSQL queries
 
 ## Backup Strategy
+
+### With Appwrite
+
+1. **Automatic Backups** (Appwrite Cloud)
+   - Appwrite Cloud includes automatic backups
+   - Self-hosted: Configure backup schedule
+
+2. **Export Data**
+   - Use Appwrite Console to export data
+   - Script automated exports via Appwrite API
+
+### With PostgreSQL
 
 1. **Database backups**
 ```bash
