@@ -1,26 +1,47 @@
 # Appwrite Credentials Setup Guide
 
+## 🔴 CRITICAL SECURITY WARNING
+
+**If you posted your Appwrite credentials in a public GitHub issue, they are now compromised and should be rotated immediately!**
+
+### Immediate Action Required:
+
+1. **Rotate Your API Keys NOW**:
+   - Log into https://cloud.appwrite.io
+   - Go to your project settings
+   - Navigate to "API Keys"
+   - **DELETE** the exposed API key immediately
+   - Create a new API key with the same permissions
+   - Use the new key in your `.env` file
+
+2. **Never Share Credentials Publicly**:
+   - Don't post credentials in GitHub issues, comments, or pull requests
+   - Don't commit credentials to Git repositories
+   - Don't share credentials via email, chat, or screenshots
+   - Use secure password managers to share credentials with team members
+
+3. **Review Access Logs**:
+   - Check your Appwrite logs for unauthorized access
+   - Review recent user registrations for suspicious activity
+   - Monitor your database for unexpected changes
+
+---
+
 ## Important Security Notice
 
 **⚠️ CRITICAL**: The Appwrite credentials you provided in the issue have been documented here for your reference, but they are **NOT stored in the repository**. They must be configured in your `.env` file which is excluded from Git for security.
 
 ## Your Appwrite Configuration
 
-Based on the credentials you provided, here's your configuration:
+⚠️ **SECURITY NOTE**: Your actual Appwrite credentials were provided in the issue. For security reasons, they are **NOT** included in this documentation or repository. You must configure them in your `.env` file on your production server.
 
-```
-Endpoint: https://sfo.cloud.appwrite.io/v1
-Project ID: 696397ea00044f7c73ee
-Database ID: 6978ae25002272a88d7b
-API Key: standard_0562e88749ab7a5eb7c52d09a762aeebd8bda73b08366ba50f15f89bb04a20baf749cf27263b8fe36a5cd139300380802f9b01d183175c464d14db5c56aadfff09a9589a2f1e5e635e1233cb4e67c0f3223abaf22f68dde4a2f0c83ea6a2bc1b4bb1e0e52c2d3a4c6c2a01a9d9a4afad95ca35c0d7164c927d8c0583174336a8
-```
+The credentials you provided include:
+- Endpoint: `https://sfo.cloud.appwrite.io/v1`
+- Project ID: (from your Appwrite dashboard)
+- Database ID: (from your Appwrite dashboard)
+- API Key: (keep this secure and never commit to Git)
 
-**Note**: There appears to be a second API key mentioned in your issue:
-```
-API secret: standard_cef217a2e720c8d8569aea429f0a97260a459d985192800c8r52102058b3c76d4b3b93c6e3f99409e69f0a53116c48c844895143508bbdd9096fae95c99d2706e0225c6c40aa03923c52baea45c55dbf8e8ecf49bd1dc96485ede6eca4d6a55e160f64aba831bf1c5f8c6525c042b7bffb1aeed106226c5de458dd860670eedf5
-```
-
-This second key may be for client-side access. Use the first key (starting with `standard_0562...`) for server-side operations.
+**Important**: If you shared these credentials publicly (e.g., in a GitHub issue), you should rotate them immediately in your Appwrite dashboard for security.
 
 ## Setup Instructions
 
@@ -40,10 +61,12 @@ Edit the `.env` file and uncomment/update the Appwrite configuration:
 ```env
 # Appwrite Configuration
 APPWRITE_ENDPOINT=https://sfo.cloud.appwrite.io/v1
-APPWRITE_PROJECT_ID=696397ea00044f7c73ee
-APPWRITE_API_KEY=standard_0562e88749ab7a5eb7c52d09a762aeebd8bda73b08366ba50f15f89bb04a20baf749cf27263b8fe36a5cd139300380802f9b01d183175c464d14db5c56aadfff09a9589a2f1e5e635e1233cb4e67c0f3223abaf22f68dde4a2f0c83ea6a2bc1b4bb1e0e52c2d3a4c6c2a01a9d9a4afad95ca35c0d7164c927d8c0583174336a8
-APPWRITE_DATABASE_ID=6978ae25002272a88d7b
+APPWRITE_PROJECT_ID=your_project_id_here
+APPWRITE_API_KEY=your_api_key_here
+APPWRITE_DATABASE_ID=your_database_id_here
 ```
+
+Replace the placeholder values above with your actual Appwrite credentials from your dashboard.
 
 ### Step 3: Configure Collection IDs
 
@@ -63,9 +86,9 @@ APPWRITE_SUBSCRIPTIONS_COLLECTION_ID=your_subscriptions_collection_id
 
 To find your collection IDs:
 1. Log into your Appwrite Console at https://cloud.appwrite.io
-2. Go to your project (ID: 696397ea00044f7c73ee)
+2. Go to your project (find your Project ID in the dashboard)
 3. Click on "Databases" in the sidebar
-4. Click on your database (ID: 6978ae25002272a88d7b)
+4. Click on your database (find your Database ID in the list)
 5. Click on each collection and copy its ID from the URL or settings
 
 ### Step 4: Secure Your .env File
