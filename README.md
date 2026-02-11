@@ -118,18 +118,39 @@ To enable Appwrite integration:
 2. Configure environment variables (see `.env.example`)
 3. Follow the setup guide in [APPWRITE_SETUP.md](APPWRITE_SETUP.md)
 
-## 🔒 Security Notes
+## 🔒 Security
 
-- All forms include client-side validation
-- Password requirements are enforced
-- JWT-based authentication with secure token generation
-- Phone number validation for SMS verification
-- Email validation patterns
-- Bcrypt password hashing
-- Rate limiting on API endpoints
-- Helmet security headers
-- CORS configuration
-- Ready for production with HTTPS
+**Important**: This application handles sensitive credentials and user data. Please review these security documents:
+
+- **[SECURITY.md](SECURITY.md)** - Comprehensive security guide for credential management
+- **[CREDENTIALS_SETUP.md](CREDENTIALS_SETUP.md)** - Step-by-step guide to configure Appwrite credentials
+- **[.env.production.example](.env.production.example)** - Template for production environment variables
+
+### Security Features
+
+- ✅ All credentials stored in `.env` file (excluded from Git)
+- ✅ JWT-based authentication with secure token generation
+- ✅ Bcrypt password hashing (10 rounds)
+- ✅ Strong password requirements enforced
+- ✅ Rate limiting (100 requests/15min per IP)
+- ✅ Helmet security headers enabled
+- ✅ CORS properly configured
+- ✅ Input validation on all endpoints
+- ✅ SQL injection protection via Appwrite
+- ✅ XSS prevention
+
+### Quick Security Checklist
+
+Before deploying to production:
+- [ ] Configure all credentials in `.env` (never commit this file)
+- [ ] Use production API keys (not test keys)
+- [ ] Change default admin password
+- [ ] Enable HTTPS
+- [ ] Set strong JWT secret (32+ characters)
+- [ ] Review and update rate limits
+- [ ] Configure monitoring and alerts
+
+See [SECURITY.md](SECURITY.md) for complete guidelines.
 
 ## 📝 License
 
