@@ -27,23 +27,52 @@ const config = {
 
 // Check if Appwrite is configured
 const isConfigured = () => {
-  return !!(
-    process.env.APPWRITE_PROJECT_ID &&
-    process.env.APPWRITE_API_KEY &&
-    process.env.APPWRITE_DATABASE_ID
+  // Check that values exist and are not placeholders
+  const hasProjectId = process.env.APPWRITE_PROJECT_ID && 
+    !process.env.APPWRITE_PROJECT_ID.includes('your_') &&
+    !process.env.APPWRITE_PROJECT_ID.includes('placeholder');
+    
+  const hasApiKey = process.env.APPWRITE_API_KEY && 
+    !process.env.APPWRITE_API_KEY.includes('your_') &&
+    !process.env.APPWRITE_API_KEY.includes('placeholder');
+    
+  const hasDatabaseId = process.env.APPWRITE_DATABASE_ID && 
+    !process.env.APPWRITE_DATABASE_ID.includes('your_') &&
+    !process.env.APPWRITE_DATABASE_ID.includes('placeholder');
+  
+  return !!(hasProjectId && hasApiKey && hasDatabaseId);
+};
+
+// Helper to create better error messages
+const createConfigError = (operation) => {
+  const error = new Error(
+    `Appwrite is not properly configured. Cannot perform ${operation}. ` +
+    'Please configure APPWRITE_PROJECT_ID, APPWRITE_API_KEY, and APPWRITE_DATABASE_ID in your .env file. ' +
+    'See APPWRITE_SETUP.md for setup instructions.'
   );
+  error.code = 'APPWRITE_NOT_CONFIGURED';
+  return error;
 };
 
 // User operations
 const userOperations = {
   // Create a new user in Appwrite Auth
   async create(email, password, name, phone) {
+    if (!isConfigured()) {
+      throw createConfigError('user creation');
+    }
     try {
       const userId = ID.unique();
       const user = await users.create(userId, email, phone, password, name);
       return user;
     } catch (error) {
       console.error('Appwrite user creation error:', error);
+      // Provide more helpful error messages
+      if (error.code === 401) {
+        throw new Error('Invalid Appwrite API key. Please check your APPWRITE_API_KEY configuration.');
+      } else if (error.code === 404) {
+        throw new Error('Appwrite project not found. Please check your APPWRITE_PROJECT_ID configuration.');
+      }
       throw error;
     }
   },

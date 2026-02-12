@@ -5,6 +5,23 @@ const rateLimit = require('express-rate-limit');
 const dataStore = require('./utils/dataStore');
 require('dotenv').config();
 
+// Validate environment variables
+const { validateEnvironment, printSetupInstructions } = require('./utils/envValidator');
+const validation = validateEnvironment();
+
+// In production, fail fast if configuration is invalid
+if (process.env.NODE_ENV === 'production' && !validation.isValid) {
+  console.error('\n❌ Cannot start server: Configuration validation failed in production mode\n');
+  printSetupInstructions();
+  process.exit(1);
+}
+
+// In development, show warnings but continue
+if (!validation.isValid) {
+  console.warn('\n⚠️  Server starting with configuration issues. Some features may not work.\n');
+  printSetupInstructions();
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
