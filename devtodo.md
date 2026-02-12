@@ -1,5 +1,17 @@
 # Developer To-Do List
 
+## ⚠️ IMPORTANT: Before You Start
+
+Run this command in your terminal to install dependencies:
+```bash
+cd /path/to/Website
+npm install
+```
+
+This installs all the required packages (express, bcryptjs, etc.)
+
+---
+
 ## ✅ What Has Been Fixed (Already Complete)
 
 All security vulnerabilities have been fixed and the application is ready. The following issues are resolved:
