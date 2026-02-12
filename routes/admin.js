@@ -7,7 +7,18 @@ const { verifyAdminToken, ADMIN_USERS } = require('../middleware/admin');
 const dataStore = require('../utils/dataStore');
 const Stripe = require('stripe');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
+// Validate Stripe configuration
+const isStripeConfigured = () => {
+  return !!(
+    process.env.STRIPE_SECRET_KEY &&
+    process.env.STRIPE_SECRET_KEY !== 'sk_test_placeholder' &&
+    !process.env.STRIPE_SECRET_KEY.includes('your_')
+  );
+};
+
+const stripe = isStripeConfigured() 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 // Import users storage from auth route
 const authModule = require('./auth');
