@@ -175,18 +175,21 @@ router.post('/login', validateLogin, async (req, res) => {
             subscription: 'free',
             verified: true
           });
-          // For backward compatibility, allow login without password verification
-          // in this case (only for migration period)
         }
 
-        // Verify password if hash exists
-        if (profile.passwordHash) {
-          const isValidPassword = await bcrypt.compare(password, profile.passwordHash);
-          if (!isValidPassword) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-          }
+        // SECURITY: Always require password verification
+        // If password hash doesn't exist, user must reset password
+        if (!profile.passwordHash) {
+          return res.status(401).json({ 
+            error: 'Password not set for this account. Please contact support to reset your password.' 
+          });
         }
-        // If no password hash, skip verification (backward compatibility)
+        
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, profile.passwordHash);
+        if (!isValidPassword) {
+          return res.status(401).json({ error: 'Invalid credentials' });
+        }
         
         // Generate JWT token
         const token = generateToken(appwriteUser.$id);
