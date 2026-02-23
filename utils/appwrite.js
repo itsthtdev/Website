@@ -39,8 +39,13 @@ const isConfigured = () => {
   const hasDatabaseId = process.env.APPWRITE_DATABASE_ID && 
     !process.env.APPWRITE_DATABASE_ID.includes('your_') &&
     !process.env.APPWRITE_DATABASE_ID.includes('placeholder');
+
+  // Users collection is required for signup/login to work end-to-end
+  const hasUsersCollectionId = process.env.APPWRITE_USERS_COLLECTION_ID &&
+    !process.env.APPWRITE_USERS_COLLECTION_ID.includes('your_') &&
+    !process.env.APPWRITE_USERS_COLLECTION_ID.includes('placeholder');
   
-  return !!(hasProjectId && hasApiKey && hasDatabaseId);
+  return !!(hasProjectId && hasApiKey && hasDatabaseId && hasUsersCollectionId);
 };
 
 // Helper to create better error messages

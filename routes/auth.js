@@ -65,12 +65,25 @@ router.post('/signup', validateSignup, async (req, res) => {
         // Create user in Appwrite Auth
         const appwriteUser = await appwrite.userOperations.create(email, password, name, phone);
 
-        // Create user profile in database with hashed password
-        await appwrite.userProfileOperations.create(appwriteUser.$id, {
-          subscription: 'free',
-          verified: true, // Auto-verified in beta
-          passwordHash: hashedPassword // Store hashed password for verification
-        });
+        // Create user profile in database with hashed password.
+        // If this fails, roll back the auth user so the account is not
+        // left in a broken state (exists in Auth but has no password hash,
+        // making login impossible and re-signup return 409).
+        try {
+          await appwrite.userProfileOperations.create(appwriteUser.$id, {
+            subscription: 'free',
+            verified: true, // Auto-verified in beta
+            passwordHash: hashedPassword // Store hashed password for verification
+          });
+        } catch (profileError) {
+          console.error('Appwrite profile creation failed, rolling back auth user:', profileError);
+          try {
+            await appwrite.userOperations.delete(appwriteUser.$id);
+          } catch (deleteError) {
+            console.error('Failed to roll back Appwrite auth user:', deleteError);
+          }
+          throw profileError;
+        }
 
         // Generate JWT token
         const token = generateToken(appwriteUser.$id);

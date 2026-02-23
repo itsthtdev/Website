@@ -23,6 +23,75 @@ All security vulnerabilities have been fixed and the application is ready. The f
 5. ✅ Created secure JWT_SECRET automatically
 6. ✅ Added input validation to all API endpoints
 7. ✅ CodeQL security scan passed (0 alerts)
+8. ✅ Fixed orphaned-user bug — if the Appwrite database profile creation fails during signup, the Appwrite Auth user is now automatically rolled back so the account is never left in a broken state
+
+---
+
+## 👤 How Users Appear in Appwrite
+
+When a user signs up on your website, the server does **two things** in Appwrite:
+
+1. **Creates the user in Appwrite Auth** → visible at `Auth > Users` in your Appwrite console
+2. **Creates a profile document in your Users collection** → visible at `Databases > your database > users`
+
+Both steps must succeed for login to work. The Users collection stores the password hash used to verify login.
+
+### Minimum required `.env` variables for Appwrite to activate
+
+All four of these must be set to real values (not the placeholders from `.env.example`):
+
+```
+APPWRITE_PROJECT_ID=...
+APPWRITE_API_KEY=...
+APPWRITE_DATABASE_ID=...
+APPWRITE_USERS_COLLECTION_ID=...
+```
+
+If any of these are missing or still say `your_..._here`, the server automatically falls back to **in-memory storage** (users will not appear in Appwrite).
+
+### How to verify Appwrite is connected
+
+After setting your credentials and restarting the server, call the status endpoint from your admin account:
+
+```bash
+# 1. Get an admin token
+curl -X POST http://localhost:3000/api/admin/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@ezclippin.studio","password":"admin123"}'
+
+# 2. Check Appwrite status (replace TOKEN with the token from step 1)
+curl http://localhost:3000/api/admin/appwrite-status \
+  -H "Authorization: Bearer TOKEN"
+```
+
+**Connected response** (users WILL appear in Appwrite):
+```json
+{
+  "configured": true,
+  "connected": true,
+  "userCount": 0,
+  "message": "Appwrite is connected. New users will appear in Appwrite under Auth > Users when they sign up."
+}
+```
+
+**Not configured response** (users will NOT appear in Appwrite — check your `.env`):
+```json
+{
+  "configured": false,
+  "connected": false,
+  "message": "Appwrite is not configured. Set APPWRITE_PROJECT_ID, APPWRITE_API_KEY, APPWRITE_DATABASE_ID, and APPWRITE_USERS_COLLECTION_ID in your .env file."
+}
+```
+
+**Credentials wrong response** (check API key scopes and Project ID):
+```json
+{
+  "configured": true,
+  "connected": false,
+  "error": "...",
+  "message": "Appwrite credentials are set but the connection failed. Check your API key scopes..."
+}
+```
 
 ---
 
