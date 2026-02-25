@@ -55,7 +55,6 @@ describe('Admin Routes', () => {
       const signup = await request(app).post('/api/auth/signup').send({
         name: 'Regular User',
         email: `regular_${Date.now()}@example.com`,
-        phone: '+12345678901',
         password: 'Test1234!'
       });
       const userToken = signup.body.token;
@@ -81,45 +80,6 @@ describe('Admin Routes', () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.users)).toBe(true);
       expect(res.body.pagination).toBeDefined();
-    });
-  });
-
-  describe('GET /api/admin/appwrite-status', () => {
-    it('returns Appwrite status for authenticated admin', async () => {
-      const loginRes = await request(app).post('/api/admin/login').send({
-        email: 'admin@ezclippin.studio',
-        password: 'admin123'
-      });
-      const token = loginRes.body.token;
-
-      const res = await request(app)
-        .get('/api/admin/appwrite-status')
-        .set('Authorization', `Bearer ${token}`);
-      expect(res.status).toBe(200);
-      // configured/connected fields must always be present
-      expect(typeof res.body.configured).toBe('boolean');
-      expect(typeof res.body.connected).toBe('boolean');
-      expect(typeof res.body.message).toBe('string');
-    });
-
-    it('returns 401 without a token', async () => {
-      const res = await request(app).get('/api/admin/appwrite-status');
-      expect(res.status).toBe(401);
-    });
-
-    it('reports Appwrite as not configured when env vars are missing', async () => {
-      const loginRes = await request(app).post('/api/admin/login').send({
-        email: 'admin@ezclippin.studio',
-        password: 'admin123'
-      });
-      const token = loginRes.body.token;
-
-      const res = await request(app)
-        .get('/api/admin/appwrite-status')
-        .set('Authorization', `Bearer ${token}`);
-      expect(res.status).toBe(200);
-      // In the test environment Appwrite env vars are not set
-      expect(res.body.configured).toBe(false);
     });
   });
 });

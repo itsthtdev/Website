@@ -4,7 +4,6 @@ const app = require('../server');
 const validUser = {
   name: 'Test User',
   email: `testuser_${Date.now()}@example.com`,
-  phone: '+12345678901',
   password: 'Test1234!'
 };
 

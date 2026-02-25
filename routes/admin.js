@@ -6,7 +6,6 @@ const { body, validationResult } = require('express-validator');
 const { verifyAdminToken, ADMIN_USERS } = require('../middleware/admin');
 const dataStore = require('../utils/dataStore');
 const Stripe = require('stripe');
-const appwrite = require('../utils/appwrite');
 
 // Validate Stripe configuration
 const isStripeConfigured = () => {
@@ -545,38 +544,6 @@ router.post('/users/:userId/create-subscription', verifyAdminToken, [
   } catch (error) {
     console.error('Create subscription error:', error);
     res.status(500).json({ error: 'Failed to create subscription' });
-  }
-});
-
-// Check Appwrite connection status
-// Use this to verify Appwrite credentials are correct and users will populate
-router.get('/appwrite-status', verifyAdminToken, async (req, res) => {
-  const configured = appwrite.isConfigured();
-
-  if (!configured) {
-    return res.json({
-      configured: false,
-      connected: false,
-      message: 'Appwrite is not configured. Set APPWRITE_PROJECT_ID, APPWRITE_API_KEY, APPWRITE_DATABASE_ID, and APPWRITE_USERS_COLLECTION_ID in your .env file. Users will NOT appear in Appwrite until this is done.'
-    });
-  }
-
-  try {
-    // Test connection by listing users (limit 1 to minimize overhead)
-    const result = await appwrite.userOperations.list([appwrite.Query.limit(1)]);
-    return res.json({
-      configured: true,
-      connected: true,
-      userCount: result.total,
-      message: 'Appwrite is connected. New users will appear in Appwrite under Auth > Users when they sign up.'
-    });
-  } catch (error) {
-    return res.json({
-      configured: true,
-      connected: false,
-      error: error.message,
-      message: 'Appwrite credentials are set but the connection failed. Check your API key scopes (users.read, users.write, databases.read, databases.write) and Project ID.'
-    });
   }
 });
 

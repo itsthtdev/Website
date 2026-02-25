@@ -387,10 +387,6 @@ function closeModal() {
     // Reset forms to initial state
     loginForm.style.display = 'block';
     signupForm.style.display = 'none';
-    const smsVerification = document.getElementById('sms-verification');
-    if (smsVerification) {
-        smsVerification.style.display = 'none';
-    }
 }
 
 // Password validation and strength checking
@@ -490,12 +486,10 @@ if (signupConfirm) {
 // Add input listeners for other fields to check form validity
 const nameField = document.getElementById('signup-name');
 const emailField = document.getElementById('signup-email');
-const phoneField = document.getElementById('signup-phone');
 const termsCheckbox = document.getElementById('terms');
 
 if (nameField) nameField.addEventListener('input', checkFormValidity);
 if (emailField) emailField.addEventListener('input', checkFormValidity);
-if (phoneField) phoneField.addEventListener('input', checkFormValidity);
 if (termsCheckbox) termsCheckbox.addEventListener('change', checkFormValidity);
 
 // Check overall form validity
@@ -504,12 +498,11 @@ function checkFormValidity() {
     const confirm = signupConfirm ? signupConfirm.value : '';
     const name = document.getElementById('signup-name') ? document.getElementById('signup-name').value : '';
     const email = document.getElementById('signup-email') ? document.getElementById('signup-email').value : '';
-    const phone = document.getElementById('signup-phone') ? document.getElementById('signup-phone').value : '';
     const terms = document.getElementById('terms') ? document.getElementById('terms').checked : false;
     
     const isPasswordValid = validatePassword(password);
     const doPasswordsMatch = password === confirm && password.length > 0;
-    const areFieldsFilled = name.length > 0 && email.length > 0 && phone.length >= 10;
+    const areFieldsFilled = name.length > 0 && email.length > 0;
     const areTermsAccepted = terms;
     
     if (signupSubmitBtn) {
@@ -546,7 +539,6 @@ if (signupFormElement) {
         
         const name = document.getElementById('signup-name').value;
         const email = document.getElementById('signup-email').value;
-        const phone = document.getElementById('signup-phone').value;
         const password = document.getElementById('signup-password').value;
         const confirm = document.getElementById('signup-confirm').value;
         
@@ -567,7 +559,7 @@ if (signupFormElement) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ name, email, phone, password })
+                body: JSON.stringify({ name, email, password })
             });
             
             const data = await response.json();

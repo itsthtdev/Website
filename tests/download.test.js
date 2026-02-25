@@ -31,7 +31,6 @@ describe('Download Routes', () => {
       const signup = await request(app).post('/api/auth/signup').send({
         name: 'Download Tester',
         email: `dltest_${Date.now()}@example.com`,
-        phone: '+12345678901',
         password: 'Test1234!'
       });
       const token = signup.body.token;
@@ -48,7 +47,6 @@ describe('Download Routes', () => {
       const signup = await request(app).post('/api/auth/signup').send({
         name: 'Download Tester2',
         email: `dltest2_${Date.now()}@example.com`,
-        phone: '+12345678901',
         password: 'Test1234!'
       });
       const token = signup.body.token;

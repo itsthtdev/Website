@@ -8,13 +8,9 @@ cd /path/to/Website
 npm install
 ```
 
-This installs all the required packages (express, bcryptjs, etc.)
-
 ---
 
 ## ✅ What Has Been Fixed (Already Complete)
-
-All security vulnerabilities have been fixed and the application is ready. The following issues are resolved:
 
 1. ✅ Fixed server crash from undefined PRICE_IDS variable
 2. ✅ Removed hardcoded admin credentials (now uses environment variables)
@@ -23,131 +19,14 @@ All security vulnerabilities have been fixed and the application is ready. The f
 5. ✅ Created secure JWT_SECRET automatically
 6. ✅ Added input validation to all API endpoints
 7. ✅ CodeQL security scan passed (0 alerts)
-8. ✅ Fixed orphaned-user bug — if the Appwrite database profile creation fails during signup, the Appwrite Auth user is now automatically rolled back so the account is never left in a broken state
-
----
-
-## 👤 How Users Appear in Appwrite
-
-When a user signs up on your website, the server does **two things** in Appwrite:
-
-1. **Creates the user in Appwrite Auth** → visible at `Auth > Users` in your Appwrite console
-2. **Creates a profile document in your Users collection** → visible at `Databases > your database > users`
-
-Both steps must succeed for login to work. The Users collection stores the password hash used to verify login.
-
-### Minimum required `.env` variables for Appwrite to activate
-
-All four of these must be set to real values (not the placeholders from `.env.example`):
-
-```
-APPWRITE_PROJECT_ID=...
-APPWRITE_API_KEY=...
-APPWRITE_DATABASE_ID=...
-APPWRITE_USERS_COLLECTION_ID=...
-```
-
-If any of these are missing or still say `your_..._here`, the server automatically falls back to **in-memory storage** (users will not appear in Appwrite).
-
-### How to verify Appwrite is connected
-
-After setting your credentials and restarting the server, call the status endpoint from your admin account:
-
-```bash
-# 1. Get an admin token
-curl -X POST http://localhost:3000/api/admin/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@ezclippin.studio","password":"admin123"}'
-
-# 2. Check Appwrite status (replace TOKEN with the token from step 1)
-curl http://localhost:3000/api/admin/appwrite-status \
-  -H "Authorization: Bearer TOKEN"
-```
-
-**Connected response** (users WILL appear in Appwrite):
-```json
-{
-  "configured": true,
-  "connected": true,
-  "userCount": 0,
-  "message": "Appwrite is connected. New users will appear in Appwrite under Auth > Users when they sign up."
-}
-```
-
-**Not configured response** (users will NOT appear in Appwrite — check your `.env`):
-```json
-{
-  "configured": false,
-  "connected": false,
-  "message": "Appwrite is not configured. Set APPWRITE_PROJECT_ID, APPWRITE_API_KEY, APPWRITE_DATABASE_ID, and APPWRITE_USERS_COLLECTION_ID in your .env file."
-}
-```
-
-**Credentials wrong response** (check API key scopes and Project ID):
-```json
-{
-  "configured": true,
-  "connected": false,
-  "error": "...",
-  "message": "Appwrite credentials are set but the connection failed. Check your API key scopes..."
-}
-```
+8. ✅ Removed Appwrite integration — backend now runs fully standalone
+9. ✅ Removed phone number requirement and SMS/email verification from signup (beta-friendly)
 
 ---
 
 ## 🔧 What YOU Need to Do (Step-by-Step)
 
-### Step 1: Get Your Appwrite Credentials
-
-**What is Appwrite?** Appwrite is your backend database where user data is stored.
-
-**How to get your credentials:**
-
-1. Go to https://cloud.appwrite.io
-2. Log in to your account
-3. Click on your project (or create a new one if you don't have one)
-4. Click **"Settings"** in the left sidebar
-5. Click **"View API Keys"**
-
-**Copy these values:**
-
-- **Project ID**: Located at the top (looks like: `65abc123def456789`)
-- **API Key**: Click "Create API Key" if you don't have one
-  - Name it: "EzClippin Server"
-  - Select these scopes:
-    - `users.read`
-    - `users.write`
-    - `databases.read`
-    - `databases.write`
-  - Click "Create"
-  - **COPY THE KEY NOW** (you can't see it again!)
-
-6. Now go to **"Databases"** in the left sidebar
-7. Click on your database (or create one named "ezclippin")
-8. Copy the **Database ID** (looks like: `65def789abc123456`)
-
-9. For each collection, click on it and copy the **Collection ID**:
-   - Users collection
-   - Visits collection
-   - Contacts collection
-   - Downloads collection
-   - Subscriptions collection
-
-**Once you have all these values, reply back with:**
-```
-APPWRITE_PROJECT_ID=<paste here>
-APPWRITE_API_KEY=<paste here>
-APPWRITE_DATABASE_ID=<paste here>
-APPWRITE_USERS_COLLECTION_ID=<paste here>
-APPWRITE_VISITS_COLLECTION_ID=<paste here>
-APPWRITE_CONTACTS_COLLECTION_ID=<paste here>
-APPWRITE_DOWNLOADS_COLLECTION_ID=<paste here>
-APPWRITE_SUBSCRIPTIONS_COLLECTION_ID=<paste here>
-```
-
----
-
-### Step 2: Get Your Stripe Credentials (For Payments)
+### Step 1: Get Your Stripe Credentials (For Payments)
 
 **What is Stripe?** Stripe processes credit card payments for your subscription service.
 
@@ -188,9 +67,9 @@ STRIPE_WEBHOOK_SECRET=<paste here>
 
 ---
 
-### Step 3: Get Email Credentials (For Contact Form)
+### Step 2: Get Email Credentials (For Contact Form)
 
-**What is this for?** This lets your contact form send emails to you.
+**What is this for?** This lets your contact form send notification emails to you.
 
 **How to get Gmail App Password:**
 
@@ -214,7 +93,7 @@ EMAIL_PASSWORD=<the app password you copied>
 
 ---
 
-### Step 4: (Optional) Change Admin Password
+### Step 3: (Optional) Change Admin Password
 
 **Default admin login:**
 - Email: `admin@ezclippin.studio`
@@ -238,61 +117,6 @@ ADMIN_EMAIL=<your email or keep admin@ezclippin.studio>
 
 ---
 
-### Step 5: (Optional but Recommended) Stripe Price IDs
-
-**What is this?** Price IDs tell Stripe which subscription plans you offer.
-
-**How to get them:**
-
-1. In Stripe Dashboard, click **"Products"**
-2. Click on each product/subscription plan you have
-3. Copy the **Price ID** (starts with `price_`)
-4. Make a comma-separated list of all valid price IDs
-
-**Reply back with:**
-```
-STRIPE_ALLOWED_PRICE_IDS=price_xxx,price_yyy,price_zzz
-```
-
----
-
-## 📝 When You Reply Back
-
-Simply paste all the values you collected in one message like this:
-
-```
-# Appwrite
-APPWRITE_PROJECT_ID=65abc123def456789
-APPWRITE_API_KEY=your_actual_api_key
-APPWRITE_DATABASE_ID=65def789abc123456
-APPWRITE_USERS_COLLECTION_ID=collection_id_1
-APPWRITE_VISITS_COLLECTION_ID=collection_id_2
-APPWRITE_CONTACTS_COLLECTION_ID=collection_id_3
-APPWRITE_DOWNLOADS_COLLECTION_ID=collection_id_4
-APPWRITE_SUBSCRIPTIONS_COLLECTION_ID=collection_id_5
-
-# Stripe
-STRIPE_SECRET_KEY=sk_test_your_key
-STRIPE_PUBLISHABLE_KEY=pk_test_your_key
-STRIPE_WEBHOOK_SECRET=whsec_your_secret
-
-# Email
-EMAIL_USER=youremail@gmail.com
-EMAIL_PASSWORD=your_app_password
-
-# Admin (optional)
-ADMIN_PASSWORD_HASH=$2a$10$your_hash_here
-ADMIN_EMAIL=admin@ezclippin.studio
-```
-
-I will then:
-1. Update your `.env` file with these values
-2. Test the server to make sure everything works
-3. Confirm that Appwrite is connected
-4. Confirm that all security issues are resolved
-
----
-
 ## ⚠️ Important Notes
 
 - **Never share** your API keys publicly (don't post them in GitHub issues!)
@@ -302,14 +126,15 @@ I will then:
 
 ---
 
-## 🚀 After I Update Your Credentials
+## 🚀 After Credentials Are Set
 
 The application will be fully configured and ready to:
-- ✅ Store user data in Appwrite
+- ✅ Let users create accounts (name + email + password — no phone required)
 - ✅ Process payments with Stripe
 - ✅ Send contact form emails
 - ✅ Admin dashboard access
 - ✅ All security features active
+
 
 ---
 
