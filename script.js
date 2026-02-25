@@ -3,150 +3,82 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
   ? 'http://localhost:3000/api' 
   : '/api';
 
-// Authentication state
-let authToken = localStorage.getItem('authToken');
-let currentUser = null;
-
-// Initialize Stripe (will be loaded from server)
-let stripe = null;
-
 // Initialize app
-document.addEventListener('DOMContentLoaded', async () => {
-  await initializeAuth();
-  await initializeStripe();
-  checkAuthState();
+document.addEventListener('DOMContentLoaded', () => {
+  initFAQ();
+  animateStatsSection();
 });
 
-// Initialize authentication state
-async function initializeAuth() {
-  if (authToken) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
+// FAQ accordion
+function initFAQ() {
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = btn.getAttribute('aria-expanded') === 'true';
+
+      // Close all other open items
+      document.querySelectorAll('.faq-item.open').forEach(openItem => {
+        if (openItem !== item) {
+          openItem.classList.remove('open');
+          openItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
         }
       });
-      
-      if (response.ok) {
-        currentUser = await response.json();
-        updateUIForLoggedInUser();
-      } else {
-        // Token is invalid, clear it
-        localStorage.removeItem('authToken');
-        authToken = null;
-      }
-    } catch (error) {
-      console.error('Auth initialization error:', error);
-    }
-  }
+
+      // Toggle current item
+      btn.setAttribute('aria-expanded', String(!isOpen));
+      item.classList.toggle('open', !isOpen);
+    });
+  });
 }
 
-// Initialize Stripe
-async function initializeStripe() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/stripe/config`);
-    const { publishableKey } = await response.json();
-    stripe = Stripe(publishableKey);
-  } catch (error) {
-    console.error('Stripe initialization error:', error);
-  }
-}
+// Animate stats counters when the section scrolls into view
+function animateStatsSection() {
+  const statsSection = document.querySelector('.stats-section');
+  if (!statsSection) return;
 
-// Check authentication state and update UI
-function checkAuthState() {
-  const loggedOutNav = document.getElementById('nav-cta-logged-out');
-  const loggedInNav = document.getElementById('nav-cta-logged-in');
-  const downloadNotice = document.getElementById('download-login-notice');
-  const downloadGrid = document.getElementById('download-grid');
-  
-  if (currentUser) {
-    if (loggedOutNav) loggedOutNav.style.display = 'none';
-    if (loggedInNav) loggedInNav.style.display = 'flex';
-    if (downloadNotice) downloadNotice.style.display = 'none';
-    if (downloadGrid) downloadGrid.style.display = 'grid';
+  let animated = false;
+
+  function runCounters() {
+    if (animated) return;
+    animated = true;
+    document.querySelectorAll('.stats-value').forEach(el => {
+      const target = parseInt(el.dataset.target, 10);
+      const suffix = el.dataset.suffix || '';
+      animateCounter(el, target, suffix, 2000);
+    });
+  }
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          runCounters();
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    observer.observe(statsSection);
   } else {
-    if (loggedOutNav) loggedOutNav.style.display = 'flex';
-    if (loggedInNav) loggedInNav.style.display = 'none';
-    if (downloadNotice) downloadNotice.style.display = 'block';
-    if (downloadGrid) downloadGrid.style.display = 'none';
+    runCounters();
   }
-}
-
-// Update UI for logged in user
-function updateUIForLoggedInUser() {
-  checkAuthState();
-}
-
-// Logout functionality
-const logoutBtn = document.getElementById('logout-btn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    localStorage.removeItem('authToken');
-    authToken = null;
-    currentUser = null;
-    checkAuthState();
-    window.location.reload();
-  });
-}
-
-// Download login link
-const downloadLoginLink = document.getElementById('download-login-link');
-if (downloadLoginLink) {
-  downloadLoginLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    const modal = document.getElementById('auth-modal');
-    const loginForm = document.getElementById('login-form');
-    const signupForm = document.getElementById('signup-form');
-    
-    if (modal && loginForm && signupForm) {
-      modal.classList.add('active');
-      signupForm.style.display = 'none';
-      loginForm.style.display = 'block';
-    }
-  });
 }
 
 // Download buttons
 document.querySelectorAll('.download-btn').forEach(btn => {
-  btn.addEventListener('click', async (e) => {
+  btn.addEventListener('click', async () => {
     const platform = btn.dataset.platform;
-    if (!authToken) {
-      alert('Please login to download');
-      return;
-    }
-    
+
     try {
       btn.disabled = true;
       btn.textContent = 'Generating download link...';
-      
-      const response = await fetch(`${API_BASE_URL}/download/${platform}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        }
-      });
-      
+
+      const response = await fetch(`${API_BASE_URL}/download/${platform}`);
       const data = await response.json();
-      
+
       if (response.ok) {
-        // Open download in new window
         window.open(data.downloadUrl, '_blank');
         btn.textContent = '✓ Download Started';
-        
-        // Track download
-        await fetch(`${API_BASE_URL}/download/track`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({
-            platform,
-            version: '1.0.0',
-            success: true
-          })
-        });
-        
+
         setTimeout(() => {
           btn.textContent = `Download for ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
           btn.disabled = false;
@@ -156,7 +88,7 @@ document.querySelectorAll('.download-btn').forEach(btn => {
       }
     } catch (error) {
       console.error('Download error:', error);
-      alert('Failed to generate download link. Please try again.');
+      alert('Failed to generate download link. Please try again or contact support.');
       btn.textContent = `Download for ${platform.charAt(0).toUpperCase() + platform.slice(1)}`;
       btn.disabled = false;
     }
@@ -226,7 +158,6 @@ if (contactForm) {
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
-        // Only handle valid in-page anchors that have an existing target
         if (!href || href === '#') {
             return;
         }
@@ -260,350 +191,17 @@ if (mobileMenuToggle && navMenu) {
     });
 }
 
-// Auth Modal functionality
-const modal = document.getElementById('auth-modal');
-const loginForm = document.getElementById('login-form');
-const signupForm = document.getElementById('signup-form');
-const modalClose = document.querySelector('.modal-close');
-const loginBtn = document.getElementById('login-btn');
-const signupBtn = document.getElementById('signup-btn');
-const showSignupLink = document.getElementById('show-signup');
-const showLoginLink = document.getElementById('show-login');
-const signupTriggers = document.querySelectorAll('.signup-trigger');
-
-// Handle login form submission
-if (loginForm) {
-  const form = loginForm.querySelector('form');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    
-    try {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Logging in...';
-      
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        authToken = data.token;
-        currentUser = data.user;
-        localStorage.setItem('authToken', authToken);
-        
-        modal.classList.remove('active');
-        form.reset();
-        updateUIForLoggedInUser();
-        
-        // Redirect to dashboard
-        window.location.href = '/dashboard.html';
-      } else {
-        throw new Error(data.error || 'Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert(error.message || 'Login failed. Please check your credentials.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Login';
-    }
-  });
-}
-
-// Open modal with signup form
-if (signupBtn) {
-    signupBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        modal.classList.add('active');
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'block';
-    });
-}
-
-// Open modal with login form
-if (loginBtn) {
-    loginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        modal.classList.add('active');
-        signupForm.style.display = 'none';
-        loginForm.style.display = 'block';
-    });
-}
-
-// All signup triggers
-signupTriggers.forEach(trigger => {
-    trigger.addEventListener('click', (e) => {
-        e.preventDefault();
-        modal.classList.add('active');
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'block';
-    });
-});
-
-// Switch to signup form
-if (showSignupLink) {
-    showSignupLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'block';
-    });
-}
-
-// Switch to login form
-if (showLoginLink) {
-    showLoginLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        signupForm.style.display = 'none';
-        loginForm.style.display = 'block';
-    });
-}
-
-// Close modal
-if (modalClose) {
-    modalClose.addEventListener('click', () => {
-        closeModal();
-    });
-}
-
-// Close modal when clicking outside
-window.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        closeModal();
-    }
-});
-
-// Helper function to close modal and reset state
-function closeModal() {
-    modal.classList.remove('active');
-    // Reset forms to initial state
-    loginForm.style.display = 'block';
-    signupForm.style.display = 'none';
-}
-
-// Password validation and strength checking
-const signupPassword = document.getElementById('signup-password');
-const signupConfirm = document.getElementById('signup-confirm');
-const passwordStrengthBar = document.querySelector('.password-strength-bar');
-const signupSubmitBtn = document.getElementById('signup-submit-btn');
-const passwordMatchMessage = document.getElementById('password-match-message');
-
-// Password requirements validation
-function validatePassword(password) {
-    const requirements = {
-        length: password.length >= 8,
-        uppercase: /[A-Z]/.test(password),
-        lowercase: /[a-z]/.test(password),
-        number: /[0-9]/.test(password),
-        special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-    };
-    
-    // Update requirement list UI
-    document.getElementById('req-length').className = requirements.length ? 'requirement-met' : 'requirement-unmet';
-    document.getElementById('req-uppercase').className = requirements.uppercase ? 'requirement-met' : 'requirement-unmet';
-    document.getElementById('req-lowercase').className = requirements.lowercase ? 'requirement-met' : 'requirement-unmet';
-    document.getElementById('req-number').className = requirements.number ? 'requirement-met' : 'requirement-unmet';
-    document.getElementById('req-special').className = requirements.special ? 'requirement-met' : 'requirement-unmet';
-    
-    return Object.values(requirements).every(Boolean);
-}
-
-// Calculate password strength
-function calculatePasswordStrength(password) {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
-    
-    return strength;
-}
-
-// Update password strength indicator
-if (signupPassword) {
-    signupPassword.addEventListener('input', () => {
-        const password = signupPassword.value;
-        validatePassword(password);
-        const strength = calculatePasswordStrength(password);
-        
-        // Update strength bar
-        passwordStrengthBar.classList.remove('weak', 'medium', 'strong');
-        if (strength <= 2) {
-            passwordStrengthBar.classList.add('weak');
-        } else if (strength <= 4) {
-            passwordStrengthBar.classList.add('medium');
-        } else {
-            passwordStrengthBar.classList.add('strong');
-        }
-        
-        // Update password match message when password changes
-        if (signupConfirm && signupConfirm.value.length > 0) {
-            const confirm = signupConfirm.value;
-            if (password === confirm) {
-                passwordMatchMessage.textContent = '✓ Passwords match';
-                passwordMatchMessage.classList.add('match');
-            } else {
-                passwordMatchMessage.textContent = '✗ Passwords do not match';
-                passwordMatchMessage.classList.remove('match');
-            }
-        }
-        
-        checkFormValidity();
-    });
-}
-
-// Check password match
-if (signupConfirm) {
-    signupConfirm.addEventListener('input', () => {
-        const password = signupPassword.value;
-        const confirm = signupConfirm.value;
-        
-        if (confirm.length > 0) {
-            if (password === confirm) {
-                passwordMatchMessage.textContent = '✓ Passwords match';
-                passwordMatchMessage.classList.add('match');
-            } else {
-                passwordMatchMessage.textContent = '✗ Passwords do not match';
-                passwordMatchMessage.classList.remove('match');
-            }
-        } else {
-            passwordMatchMessage.textContent = '';
-        }
-        
-        checkFormValidity();
-    });
-}
-
-// Add input listeners for other fields to check form validity
-const nameField = document.getElementById('signup-name');
-const emailField = document.getElementById('signup-email');
-const termsCheckbox = document.getElementById('terms');
-
-if (nameField) nameField.addEventListener('input', checkFormValidity);
-if (emailField) emailField.addEventListener('input', checkFormValidity);
-if (termsCheckbox) termsCheckbox.addEventListener('change', checkFormValidity);
-
-// Check overall form validity
-function checkFormValidity() {
-    const password = signupPassword ? signupPassword.value : '';
-    const confirm = signupConfirm ? signupConfirm.value : '';
-    const name = document.getElementById('signup-name') ? document.getElementById('signup-name').value : '';
-    const email = document.getElementById('signup-email') ? document.getElementById('signup-email').value : '';
-    const terms = document.getElementById('terms') ? document.getElementById('terms').checked : false;
-    
-    const isPasswordValid = validatePassword(password);
-    const doPasswordsMatch = password === confirm && password.length > 0;
-    const areFieldsFilled = name.length > 0 && email.length > 0;
-    const areTermsAccepted = terms;
-    
-    if (signupSubmitBtn) {
-        signupSubmitBtn.disabled = !(isPasswordValid && doPasswordsMatch && areFieldsFilled && areTermsAccepted);
-    }
-}
-
-// Handle login form submission
-const loginFormElement = document.getElementById('login-form-element');
-if (loginFormElement) {
-    loginFormElement.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        // Get form values (in production, send to backend via HTTPS)
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        
-        // In production: Send to backend for authentication
-        // Backend must verify credentials securely
-        
-        // Close modal (in production, redirect to dashboard after successful login)
-        modal.classList.remove('active');
-        
-        // Reset form
-        loginFormElement.reset();
-    });
-}
-
-// Handle signup form submission
-const signupFormElement = document.getElementById('signup-form-element');
-if (signupFormElement) {
-    signupFormElement.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const name = document.getElementById('signup-name').value;
-        const email = document.getElementById('signup-email').value;
-        const password = document.getElementById('signup-password').value;
-        const confirm = document.getElementById('signup-confirm').value;
-        
-        // Validate passwords match
-        if (password !== confirm) {
-            alert('Passwords do not match');
-            return;
-        }
-        
-        const submitBtn = document.getElementById('signup-submit-btn');
-        
-        try {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Creating account...';
-            
-            const response = await fetch(`${API_BASE_URL}/auth/signup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, email, password })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                // Store auth token and user data
-                authToken = data.token;
-                currentUser = data.user;
-                localStorage.setItem('authToken', authToken);
-                
-                // Close modal
-                modal.classList.remove('active');
-                signupFormElement.reset();
-                
-                updateUIForLoggedInUser();
-                
-                // Redirect to dashboard
-                window.location.href = '/dashboard.html';
-            } else {
-                throw new Error(data.error || 'Signup failed');
-            }
-        } catch (error) {
-            console.error('Signup error:', error);
-            alert(error.message || 'Failed to create account. Please try again.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Account';
-        }
-    });
-}
-
-// SMS verification removed for beta - users are created immediately upon signup
-
-// Animated counters for stats
-function animateCounter(element, target, duration = 2000) {
+// Animated counter helper
+function animateCounter(element, target, suffix, duration) {
     let start = 0;
     const increment = target / (duration / 16);
     const timer = setInterval(() => {
         start += increment;
         if (start >= target) {
-            element.textContent = formatNumber(target);
+            element.textContent = formatNumber(target) + suffix;
             clearInterval(timer);
         } else {
-            element.textContent = formatNumber(Math.floor(start));
+            element.textContent = formatNumber(Math.floor(start)) + suffix;
         }
     }, 16);
 }
@@ -617,7 +215,7 @@ function formatNumber(num) {
     return num.toString();
 }
 
-// Initialize counters when hero section is visible (with fallback for older browsers)
+// Hero stats counters (animate on load)
 const heroStats = document.querySelector('.hero-stats');
 if (heroStats) {
     if ('IntersectionObserver' in window) {
@@ -629,9 +227,9 @@ if (heroStats) {
                     const socialPosts = document.getElementById('social-posts');
                     
                     if (clipsCreated && clipsCreated.textContent === '0') {
-                        animateCounter(clipsCreated, 0, 1000);
-                        animateCounter(hoursSaved, 0, 1000);
-                        animateCounter(socialPosts, 0, 1000);
+                        animateCounter(clipsCreated, 1200000, '', 2000);
+                        animateCounter(hoursSaved, 320000, '', 2000);
+                        animateCounter(socialPosts, 870000, '', 2000);
                     }
                     statsObserver.unobserve(entry.target);
                 }
@@ -640,16 +238,12 @@ if (heroStats) {
         
         statsObserver.observe(heroStats);
     } else {
-        // Fallback for browsers without IntersectionObserver: trigger counters immediately
         const clipsCreated = document.getElementById('clips-created');
         const hoursSaved = document.getElementById('hours-saved');
         const socialPosts = document.getElementById('social-posts');
-        
-        if (clipsCreated && clipsCreated.textContent === '0') {
-            animateCounter(clipsCreated, 0, 1000);
-            animateCounter(hoursSaved, 0, 1000);
-            animateCounter(socialPosts, 0, 1000);
-        }
+        if (clipsCreated) animateCounter(clipsCreated, 1200000, '', 2000);
+        if (hoursSaved) animateCounter(hoursSaved, 320000, '', 2000);
+        if (socialPosts) animateCounter(socialPosts, 870000, '', 2000);
     }
 }
 
@@ -682,16 +276,14 @@ if ('IntersectionObserver' in window) {
         });
     }, observerOptions);
 
-    // Observe all feature cards, steps, and pricing cards
-    document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
+    document.querySelectorAll('.feature-card, .step, .stats-card, .download-card').forEach(el => {
         el.style.opacity = '0';
         el.style.transform = 'translateY(20px)';
         el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
         observer.observe(el);
     });
 } else {
-    // Fallback: show elements immediately if IntersectionObserver is not supported
-    document.querySelectorAll('.feature-card, .step, .pricing-card').forEach(el => {
+    document.querySelectorAll('.feature-card, .step, .stats-card, .download-card').forEach(el => {
         el.style.opacity = '1';
         el.style.transform = 'translateY(0)';
     });
