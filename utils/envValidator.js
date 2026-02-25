@@ -59,42 +59,7 @@ function validateEnvironment() {
     validationResults.warnings.push('JWT_SECRET should be at least 32 characters long for security');
   }
   
-  // 3. Validate Appwrite Configuration
-  const appwriteConfigured = !!(
-    process.env.APPWRITE_PROJECT_ID &&
-    process.env.APPWRITE_API_KEY &&
-    process.env.APPWRITE_DATABASE_ID &&
-    isConfigured(process.env.APPWRITE_PROJECT_ID) &&
-    isConfigured(process.env.APPWRITE_API_KEY) &&
-    isConfigured(process.env.APPWRITE_DATABASE_ID)
-  );
-  
-  if (!appwriteConfigured) {
-    if (isProduction) {
-      validationResults.errors.push('Appwrite credentials must be configured in production');
-    } else {
-      validationResults.warnings.push('Appwrite not configured. Using in-memory storage fallback (data will not persist)');
-    }
-  } else {
-    // Check all required Appwrite collections
-    const collections = [
-      'APPWRITE_USERS_COLLECTION_ID',
-      'APPWRITE_VISITS_COLLECTION_ID',
-      'APPWRITE_CONTACTS_COLLECTION_ID',
-      'APPWRITE_DOWNLOADS_COLLECTION_ID',
-      'APPWRITE_SUBSCRIPTIONS_COLLECTION_ID'
-    ];
-    
-    const missingCollections = collections.filter(col => !process.env[col] || !isConfigured(process.env[col]));
-    
-    if (missingCollections.length > 0) {
-      validationResults.warnings.push(`Missing Appwrite collections: ${missingCollections.join(', ')}`);
-    } else {
-      validationResults.info.push('✓ Appwrite fully configured');
-    }
-  }
-  
-  // 4. Validate Stripe Configuration
+  // 3. Validate Stripe Configuration
   const stripeConfigured = !!(
     process.env.STRIPE_SECRET_KEY &&
     process.env.STRIPE_PUBLISHABLE_KEY &&
