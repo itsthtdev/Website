@@ -26,9 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
-app.use(helmet({
-  contentSecurityPolicy: false, // Allow inline scripts for development
-}));
+app.use(helmet());
 
 // CORS configuration
 const isProduction = process.env.NODE_ENV === 'production';
